@@ -7,24 +7,19 @@ export default async function AdminBidangPage() {
 
   const supabase = createAdminClient()
 
-  const { data: bidangList, error } = await supabase
+const { data: bidangList, error } = await supabase
     .from('bidang')
-    .select(`
-      *,
-      parent:bidang!bidang_parent_id_fkey (nama),
-      pic:users!bidang_pic_fk (full_name)
-    `)
+    .select('*')
     .order('nama')
 
-console.log('bidang data:', JSON.stringify(bidangList))
-console.log('bidang error:', JSON.stringify(error))
-
-  const { data: users } = await supabase
+const { data: users } = await supabase
     .from('users')
     .select('id, full_name, email, role')
     .eq('is_active', true)
     .order('full_name')
-
+    
+    console.log('bidang data:', JSON.stringify(bidangList))
+    console.log('bidang error:', JSON.stringify(error))
   return (
     <div className="space-y-6">
       <div>
