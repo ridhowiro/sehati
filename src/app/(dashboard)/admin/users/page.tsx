@@ -7,11 +7,11 @@ export default async function AdminUsersPage() {
 
   const supabase = createAdminClient()
 
-  const { data: users, error } = await supabase
+const { data: users, error } = await supabase
     .from('users')
     .select(`
       *,
-      bidang (nama)
+      bidang!users_bidang_id_fkey (nama)
     `)
     .order('created_at', { ascending: false })
 
