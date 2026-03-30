@@ -41,7 +41,15 @@ export default function BidangTable({ bidangList, users }: { bidangList: Bidang[
   })
 
   const supabase = createClient()
+    const getParentName = (parent_id: string | null) => {
+    if (!parent_id) return '-'
+    return data.find(b => b.id === parent_id)?.nama || '-'
+    }
 
+    const getPicName = (pic_user_id: string | null) => {
+    if (!pic_user_id) return '-'
+    return users.find(u => u.id === pic_user_id)?.full_name || '-'
+    }
   const showMessage = (msg: string, isError = false) => {
     if (isError) setError(msg)
     else setMessage(msg)
@@ -99,11 +107,7 @@ export default function BidangTable({ bidangList, users }: { bidangList: Bidang[
         parent_id: addForm.parent_id || null,
         pic_user_id: addForm.pic_user_id || null,
       })
-      .select(`
-        *,
-        parent:bidang!bidang_parent_id_fkey (nama),
-        pic:users!bidang_pic_fk (full_name)
-      `)
+      .select(`*`)
       .single()
 
     if (error) {
@@ -249,7 +253,7 @@ export default function BidangTable({ bidangList, users }: { bidangList: Bidang[
                       ))}
                     </select>
                   ) : (
-                    bidang.parent?.nama || '-'
+                    getParentName(bidang.parent_id)
                   )}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
@@ -265,7 +269,7 @@ export default function BidangTable({ bidangList, users }: { bidangList: Bidang[
                       ))}
                     </select>
                   ) : (
-                    bidang.pic?.full_name || '-'
+                    getPicName(bidang.pic_user_id)
                   )}
                 </td>
                 <td className="px-4 py-3">

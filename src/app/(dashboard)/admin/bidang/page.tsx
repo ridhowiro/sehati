@@ -18,8 +18,6 @@ const { data: users } = await supabase
     .eq('is_active', true)
     .order('full_name')
     
-    console.log('bidang data:', JSON.stringify(bidangList))
-    console.log('bidang error:', JSON.stringify(error))
   return (
     <div className="space-y-6">
       <div>
