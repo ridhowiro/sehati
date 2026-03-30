@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -13,40 +13,78 @@ import {
   ChevronRight,
   LogOut,
   Settings,
+  Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-const menuItems = [
+type UserRole = 'admin' | 'kasubdit' | 'kepala_sekretariat' | 'pic' | 'karyawan'
+
+const allMenuItems = [
   {
     title: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
+    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
   },
   {
     title: 'Log Bulanan',
     href: '/log',
     icon: BookOpen,
+    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
   },
   {
     title: 'Agenda',
     href: '/agenda',
     icon: Calendar,
+    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
   },
   {
     title: 'Kepegawaian',
     href: '/kepegawaian',
     icon: Users,
+    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
   },
-    { title: 'Profil Saya', href: '/profil', icon: Settings },
-
+  {
+    title: 'Profil Saya',
+    href: '/profil',
+    icon: Settings,
+    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
+  },
+  {
+    title: 'Admin',
+    href: '/admin/users',
+    icon: Shield,
+    roles: ['admin'],
+  },
 ]
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [role, setRole] = useState<UserRole | null>(null)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (data) setRole(data.role as UserRole)
+    }
+    fetchRole()
+  }, [])
+
+  const menuItems = allMenuItems.filter(item =>
+    role ? item.roles.includes(role) : item.roles.includes('karyawan')
+  )
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
