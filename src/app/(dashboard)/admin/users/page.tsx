@@ -7,13 +7,16 @@ export default async function AdminUsersPage() {
 
   const supabase = createAdminClient()
 
-  const { data: users } = await supabase
+  const { data: users, error } = await supabase
     .from('users')
     .select(`
       *,
       bidang (nama)
     `)
     .order('created_at', { ascending: false })
+
+console.log('users data:', JSON.stringify(users))
+console.log('users error:', JSON.stringify(error))
 
   const { data: bidangList } = await supabase
     .from('bidang')
