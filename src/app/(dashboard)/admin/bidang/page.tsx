@@ -7,7 +7,7 @@ export default async function AdminBidangPage() {
 
   const supabase = createAdminClient()
 
-  const { data: bidangList } = await supabase
+  const { data: bidangList, error } = await supabase
     .from('bidang')
     .select(`
       *,
@@ -15,6 +15,9 @@ export default async function AdminBidangPage() {
       pic:users!bidang_pic_fk (full_name)
     `)
     .order('nama')
+
+console.log('bidang data:', JSON.stringify(bidangList))
+console.log('bidang error:', JSON.stringify(error))
 
   const { data: users } = await supabase
     .from('users')
