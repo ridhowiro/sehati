@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -37,6 +38,8 @@ const menuItems = [
     href: '/kepegawaian',
     icon: Users,
   },
+    { title: 'Profil Saya', href: '/profil', icon: Settings },
+
 ]
 
 export default function Sidebar() {

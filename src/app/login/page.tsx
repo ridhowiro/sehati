@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Link } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -56,9 +57,14 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">
+                  Password
+                </label>
+                <Link href="/reset-password" className="text-xs text-blue-400 hover:text-blue-300">
+                  Lupa password?
+                </Link>
+              </div>
             <input
               type="password"
               value={password}
