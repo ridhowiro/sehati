@@ -14,6 +14,7 @@ import {
   LogOut,
   Settings,
   Shield,
+  Building2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -55,6 +56,12 @@ const allMenuItems = [
     title: 'Admin',
     href: '/admin/users',
     icon: Shield,
+    roles: ['admin'],
+  },
+    {
+    title: 'Manajemen Bidang',
+    href: '/admin/bidang',
+    icon: Building2,
     roles: ['admin'],
   },
 ]
