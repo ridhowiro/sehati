@@ -15,6 +15,7 @@ import {
   Settings,
   Shield,
   Building2,
+  ClipboardCheck,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -64,6 +65,12 @@ const allMenuItems = [
     icon: Building2,
     roles: ['admin'],
   },
+  {
+  title: 'Review Log',
+  href: '/review',
+  icon: ClipboardCheck,
+  roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic'],
+},
 ]
 
 export default function Sidebar() {
