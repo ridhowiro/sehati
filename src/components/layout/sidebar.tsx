@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useSidebar } from '@/components/layout/sidebar-context'
 import {
   LayoutDashboard,
   BookOpen,
@@ -27,6 +28,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [role, setRole] = useState<UserRole | null>(null)
+  const { mobileOpen, setMobileOpen } = useSidebar()
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -47,6 +49,7 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (pathname.startsWith('/admin')) setAdminOpen(true)
+    setMobileOpen(false)
   }, [pathname])
 
   const handleLogout = async () => {
@@ -68,10 +71,24 @@ export default function Sidebar() {
   const isAdmin = role === 'admin'
 
   return (
-    <aside className={cn(
-      'relative flex flex-col h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300',
-      collapsed ? 'w-16' : 'w-60'
-    )}>
+    <>
+      {/* Backdrop mobile */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside className={cn(
+        'flex flex-col h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300 z-50',
+        // Desktop
+        'lg:relative lg:translate-x-0',
+        collapsed ? 'lg:w-16' : 'lg:w-60',
+        // Mobile
+        'fixed top-0 left-0 w-72',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      )}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-zinc-800">
         {!collapsed && (
@@ -178,5 +195,6 @@ export default function Sidebar() {
         )}
       </nav>
     </aside>
+    </>
   )
 }

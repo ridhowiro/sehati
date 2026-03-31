@@ -84,18 +84,18 @@ export default function LoginPage() {
       </div>
 
       {/* Sisi kanan — form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-sm">
 
           {/* Mobile logo */}
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-              <span className="text-white text-sm font-bold">S</span>
+          <div className="flex flex-col items-center mb-8 lg:hidden">
+            <div className="flex items-center justify-center gap-3 flex-wrap mb-2">
+              <img src="/logo/logo-kemdikbud.png" alt="Kemdiktisaintek" className="h-8 w-auto object-contain" />
+              <img src="/logo/logo-diktisaintek.png" alt="Diktisaintek" className="h-8 w-auto object-contain" />
+              <img src="/logo/logo-ditdaya.png" alt="Ditdaya" className="h-8 w-auto object-contain" />
+              <img src="/logo/logo-heti.png" alt="HETI" className="h-8 w-auto object-contain" />
             </div>
-            <div>
-              <p className="text-white font-semibold text-sm">SEHATI</p>
-              <p className="text-zinc-500 text-xs">Sekretariat PMU HETI</p>
-            </div>
+            <p className="text-zinc-500 text-xs">Sekretariat PMU HETI · Kemdiktisaintek</p>
           </div>
 
           <div className="mb-8">

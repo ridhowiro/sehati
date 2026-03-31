@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import ThemeToggle from '@/components/layout/theme-toggle'
 import UserMenu from '@/components/layout/user-menu'
 import Clock from '@/components/layout/clock'
+import MobileMenuButton from '@/components/layout/mobile-menu-button'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrator',
@@ -32,8 +33,11 @@ export default async function Header() {
   const roleDisplay = bidangNama ? `${roleLabel} · ${bidangNama}` : roleLabel
 
   return (
-    <header className="h-14 border-b border-zinc-800 dark:bg-zinc-900 bg-white flex items-center justify-between px-6 gap-3">
-      <Clock />
+    <header className="h-14 border-b border-zinc-800 dark:bg-zinc-900 bg-white flex items-center justify-between px-4 gap-3">
+      <div className="flex items-center gap-2">
+        <MobileMenuButton />
+        <Clock />
+      </div>
       <div className="flex items-center gap-3">
         <ThemeToggle />
         <UserMenu
