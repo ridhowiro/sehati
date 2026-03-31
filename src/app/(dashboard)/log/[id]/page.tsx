@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getUserRole } from '@/lib/get-user-role'
 import { redirect } from 'next/navigation'
 import LogDetail from '@/components/log/log-detail'
@@ -13,6 +14,7 @@ export default async function LogDetailPage({ params }: { params: Promise<{ id: 
   const { id } = await params
   const { user } = await getUserRole()
   const supabase = await createClient()
+  const adminSupabase = createAdminClient()
 
   const { data: log } = await supabase
     .from('log_bulanan')
@@ -28,11 +30,22 @@ export default async function LogDetailPage({ params }: { params: Promise<{ id: 
     .eq('log_bulanan_id', id)
     .order('tanggal', { ascending: true })
 
-  const { data: approvals } = await supabase
+  const { data: approvalsRaw } = await supabase
     .from('log_approval')
-    .select(`*, users!log_approval_reviewer_id_fkey (full_name)`)
+    .select('*')
     .eq('log_bulanan_id', id)
     .order('urutan', { ascending: true })
+
+  const approvals = await Promise.all(
+    (approvalsRaw || []).map(async (approval) => {
+      const { data: reviewer } = await adminSupabase
+        .from('users')
+        .select('full_name')
+        .eq('id', approval.reviewer_id)
+        .single()
+      return { ...approval, reviewer }
+    })
+  )
 
   const { data: profil } = await supabase
     .from('pegawai_profil')
@@ -40,7 +53,7 @@ export default async function LogDetailPage({ params }: { params: Promise<{ id: 
     .eq('user_id', user.id)
     .single()
 
-  const { data: userData } = await supabase
+  const { data: userData } = await adminSupabase
     .from('users')
     .select('full_name')
     .eq('id', user.id)

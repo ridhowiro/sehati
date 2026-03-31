@@ -16,8 +16,18 @@ export default function DownloadPDFButton({ log, entries, approvals, userData }:
   const handleDownload = async () => {
     setLoading(true)
     try {
+      const QRCode = await import('qrcode')
       const { pdf } = await import('@react-pdf/renderer')
       const { LogPDF } = await import('./log-pdf')
+
+      const baseUrl = window.location.origin
+      const verifyUrl = `${baseUrl}/verify/${log.id}`
+
+      const qrDataUrl = await QRCode.default.toDataURL(verifyUrl, {
+        width: 200,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+      })
 
       const blob = await pdf(
         <LogPDF
@@ -25,6 +35,8 @@ export default function DownloadPDFButton({ log, entries, approvals, userData }:
           entries={entries}
           approvals={approvals}
           userData={userData}
+          qrDataUrl={qrDataUrl}
+          baseUrl={baseUrl}
         />
       ).toBlob()
 
@@ -40,8 +52,8 @@ export default function DownloadPDFButton({ log, entries, approvals, userData }:
     }
     setLoading(false)
   }
-
   return (
+    
     <button
       onClick={handleDownload}
       disabled={loading}

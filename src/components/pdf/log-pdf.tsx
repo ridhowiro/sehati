@@ -4,6 +4,7 @@ import {
   Text,
   View,
   StyleSheet,
+  Image,
   Font,
 } from '@react-pdf/renderer'
 
@@ -30,11 +31,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
     marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 10,
-    textAlign: 'center',
-    marginBottom: 2,
   },
   infoRow: {
     flexDirection: 'row',
@@ -82,25 +78,55 @@ const styles = StyleSheet.create({
     marginTop: 30,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   signatureBox: {
-    width: '22%',
+    width: '20%',
     alignItems: 'center',
   },
   signatureLabel: {
     fontSize: 9,
     marginBottom: 4,
   },
+  signatureInitial: {
+    fontSize: 14,
+    fontFamily: 'Helvetica-Oblique',
+    letterSpacing: 2,
+    marginTop: 8,
+    marginBottom: 4,
+    color: '#333',
+  },
   signatureName: {
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    marginTop: 40,
+    marginTop: 8,
     textAlign: 'center',
   },
   signatureRole: {
     fontSize: 8,
     textAlign: 'center',
     color: '#555',
+  },
+  signatureDate: {
+    fontSize: 7,
+    textAlign: 'center',
+    color: '#888',
+    marginTop: 2,
+  },
+  qrBox: {
+    width: '15%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrImage: {
+    width: 70,
+    height: 70,
+  },
+  qrLabel: {
+    fontSize: 6,
+    textAlign: 'center',
+    color: '#888',
+    marginTop: 2,
   },
 })
 
@@ -116,13 +142,17 @@ interface LogEntry {
 
 interface Approval {
   role_reviewer: string
+  reviewed_at: string
   users: { full_name: string } | null
+  reviewer: { full_name: string } | null
 }
 
 interface LogPDFProps {
   log: {
+    id: string
     bulan: number
     tahun: number
+    submitted_at: string | null
   }
   entries: LogEntry[]
   approvals: Approval[]
@@ -130,23 +160,31 @@ interface LogPDFProps {
     full_name: string
     jabatan_formal?: string | null
   }
-}
-
-const getRoleLabel = (role: string) => {
-  const labels: Record<string, string> = {
-    karyawan: 'Staf',
-    pic: 'Koordinator',
-    kepala_sekretariat: 'Kepala Sekretariat',
-    kasubdit: 'Kasubdit',
-  }
-  return labels[role] || role
+  qrDataUrl: string
+  baseUrl: string
 }
 
 const getApproval = (approvals: Approval[], role: string) => {
-  return approvals.find(a => a.role_reviewer === role)
+  const approval = approvals.find(a => a.role_reviewer === role)
+  if (!approval) return undefined
+  const fullName = approval.reviewer?.full_name || approval.users?.full_name || null
+  return { ...approval, users: fullName ? { full_name: fullName } : null }
 }
 
-export function LogPDF({ log, entries, approvals, userData }: LogPDFProps) {
+const getInitials = (name: string) => {
+  if (!name) return ''
+  return name.split(' ').map((w: string) => w[0]).join('').toUpperCase()
+}
+
+const formatDateTime = (dateStr: string) => {
+  const date = new Date(dateStr)
+  const day = date.toLocaleDateString('id-ID', { weekday: 'short' })
+  const dateFormatted = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+  const time = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  return `${day}, ${dateFormatted} • ${time}`
+}
+
+export function LogPDF({ log, entries, approvals, userData, qrDataUrl }: LogPDFProps) {
   const picApproval = getApproval(approvals, 'pic')
   const kasekApproval = getApproval(approvals, 'kepala_sekretariat')
   const kasubditApproval = getApproval(approvals, 'kasubdit')
@@ -154,12 +192,10 @@ export function LogPDF({ log, entries, approvals, userData }: LogPDFProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page} orientation="landscape">
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>LOG BULANAN SEKRETARIAT PMU HETI</Text>
         </View>
 
-        {/* Info */}
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Nama</Text>
           <Text style={styles.infoValue}>: {userData.full_name}</Text>
@@ -173,31 +209,16 @@ export function LogPDF({ log, entries, approvals, userData }: LogPDFProps) {
           <Text style={styles.infoValue}>: {bulanNames[log.bulan]} {log.tahun}</Text>
         </View>
 
-        {/* Tabel */}
         <View style={styles.table}>
-          {/* Header tabel */}
           <View style={styles.tableHeader}>
-            <View style={styles.colNo}>
-              <Text style={styles.headerText}>No</Text>
-            </View>
-            <View style={styles.colTanggal}>
-              <Text style={styles.headerText}>Tanggal</Text>
-            </View>
-            <View style={styles.colKegiatan}>
-              <Text style={styles.headerText}>Kegiatan</Text>
-            </View>
-            <View style={styles.colOutput}>
-              <Text style={styles.headerText}>Output</Text>
-            </View>
-            <View style={styles.colLink}>
-              <Text style={styles.headerText}>Link Dokumen Output</Text>
-            </View>
-            <View style={styles.colKet}>
-              <Text style={styles.headerText}>Keterangan</Text>
-            </View>
+            <View style={styles.colNo}><Text style={styles.headerText}>No</Text></View>
+            <View style={styles.colTanggal}><Text style={styles.headerText}>Tanggal</Text></View>
+            <View style={styles.colKegiatan}><Text style={styles.headerText}>Kegiatan</Text></View>
+            <View style={styles.colOutput}><Text style={styles.headerText}>Output</Text></View>
+            <View style={styles.colLink}><Text style={styles.headerText}>Link Dokumen Output</Text></View>
+            <View style={styles.colKet}><Text style={styles.headerText}>Keterangan</Text></View>
           </View>
 
-          {/* Rows */}
           {entries.map((entry, index) => (
             <View style={styles.tableRow} key={entry.id}>
               <View style={styles.colNo}>
@@ -226,27 +247,73 @@ export function LogPDF({ log, entries, approvals, userData }: LogPDFProps) {
           ))}
         </View>
 
-        {/* Tanda Tangan */}
         <View style={styles.signatureSection}>
+          {/* Mengajukan */}
           <View style={styles.signatureBox}>
             <Text style={styles.signatureLabel}>Mengajukan,</Text>
+            <Text style={styles.signatureInitial}>{getInitials(userData.full_name)}</Text>
             <Text style={styles.signatureName}>{userData.full_name}</Text>
             <Text style={styles.signatureRole}>{userData.jabatan_formal || 'Staf PMU HETI'}</Text>
+            {log.submitted_at && (
+              <Text style={styles.signatureDate}>{formatDateTime(log.submitted_at)}</Text>
+            )}
           </View>
+
+          {/* Mengetahui - PIC */}
           <View style={styles.signatureBox}>
             <Text style={styles.signatureLabel}>Mengetahui,</Text>
-            <Text style={styles.signatureName}>{picApproval?.users?.full_name || '_______________'}</Text>
+            {picApproval?.users?.full_name && (
+              <Text style={styles.signatureInitial}>
+                {getInitials(picApproval.users.full_name)}
+              </Text>
+            )}
+            <Text style={styles.signatureName}>
+              {picApproval?.users?.full_name || '_______________'}
+            </Text>
             <Text style={styles.signatureRole}>Koordinator PMU HETI</Text>
+            {picApproval && (
+              <Text style={styles.signatureDate}>{formatDateTime(picApproval.reviewed_at)}</Text>
+            )}
           </View>
+
+          {/* Memverifikasi - Kasek */}
           <View style={styles.signatureBox}>
             <Text style={styles.signatureLabel}>Memverifikasi,</Text>
-            <Text style={styles.signatureName}>{kasekApproval?.users?.full_name || '_______________'}</Text>
+            {kasekApproval?.users?.full_name && (
+              <Text style={styles.signatureInitial}>
+                {getInitials(kasekApproval.users.full_name)}
+              </Text>
+            )}
+            <Text style={styles.signatureName}>
+              {kasekApproval?.users?.full_name || '_______________'}
+            </Text>
             <Text style={styles.signatureRole}>Kepala Sekretariat PMU HETI</Text>
+            {kasekApproval && (
+              <Text style={styles.signatureDate}>{formatDateTime(kasekApproval.reviewed_at)}</Text>
+            )}
           </View>
+
+          {/* Menyetujui - Kasubdit */}
           <View style={styles.signatureBox}>
             <Text style={styles.signatureLabel}>Menyetujui,</Text>
-            <Text style={styles.signatureName}>{kasubditApproval?.users?.full_name || '_______________'}</Text>
+            {kasubditApproval?.users?.full_name && (
+              <Text style={styles.signatureInitial}>
+                {getInitials(kasubditApproval.users.full_name)}
+              </Text>
+            )}
+            <Text style={styles.signatureName}>
+              {kasubditApproval?.users?.full_name || '_______________'}
+            </Text>
             <Text style={styles.signatureRole}>Kasubdit Sumber Daya PMU HETI</Text>
+            {kasubditApproval && (
+              <Text style={styles.signatureDate}>{formatDateTime(kasubditApproval.reviewed_at)}</Text>
+            )}
+          </View>
+
+          {/* QR Code */}
+          <View style={styles.qrBox}>
+            <Image src={qrDataUrl} style={styles.qrImage} />
+            <Text style={styles.qrLabel}>Scan untuk verifikasi</Text>
           </View>
         </View>
       </Page>
