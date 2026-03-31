@@ -2,6 +2,7 @@ import { getUserRole } from '@/lib/get-user-role'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -24,7 +25,7 @@ export default async function ReviewPage() {
     redirect('/')
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient() // pakai admin client
 
   let query = supabase
     .from('log_bulanan')

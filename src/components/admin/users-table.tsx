@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { createUser } from '@/app/actions/user'
+import { Pencil, Trash2, X, Check, Plus } from 'lucide-react'
 
 type UserRole = 'admin' | 'kasubdit' | 'kepala_sekretariat' | 'pic' | 'karyawan'
 
@@ -46,7 +48,38 @@ export default function UsersTable({ users, bidangList }: { users: User[], bidan
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [showInviteForm, setShowInviteForm] = useState(false)
+const [inviteForm, setInviteForm] = useState({
+  email: '',
+  password: '',
+  full_name: '',
+  role: 'karyawan',
+  bidang_id: '',
+})
+const [inviteLoading, setInviteLoading] = useState(false)
   const supabase = createClient()
+
+const handleInvite = async () => {
+  if (!inviteForm.email || !inviteForm.password || !inviteForm.full_name) {
+    setMessage('Email, password, dan nama wajib diisi!')
+    return
+  }
+  setInviteLoading(true)
+
+  const result = await createUser(inviteForm)
+
+  if (result.error) {
+    setMessage('Gagal: ' + result.error)
+    setInviteLoading(false)
+  } else {
+    setMessage('User berhasil ditambahkan!')
+    setInviteForm({ email: '', password: '', full_name: '', role: 'karyawan', bidang_id: '' })
+    setShowInviteForm(false)
+    setInviteLoading(false)
+    window.location.reload()
+  }
+}
+
 
   const startEdit = (user: User) => {
     setEditingId(user.id)
@@ -106,6 +139,94 @@ export default function UsersTable({ users, bidangList }: { users: User[], bidan
       )}
 
       <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+  <p className="text-sm font-medium text-zinc-900 dark:text-white">{data.length} user</p>
+  <button
+    onClick={() => setShowInviteForm(!showInviteForm)}
+    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
+  >
+    <Plus size={14} />
+    Tambah User
+  </button>
+</div>
+
+{showInviteForm && (
+  <div className="px-4 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+    <p className="text-xs font-medium text-zinc-500 mb-3">Tambah User Baru</p>
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Nama Lengkap *</label>
+        <input
+          type="text"
+          value={inviteForm.full_name}
+          onChange={(e) => setInviteForm({ ...inviteForm, full_name: e.target.value })}
+          className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Nama lengkap"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Email *</label>
+        <input
+          type="email"
+          value={inviteForm.email}
+          onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+          className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="email@domain.com"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Password *</label>
+        <input
+          type="password"
+          value={inviteForm.password}
+          onChange={(e) => setInviteForm({ ...inviteForm, password: e.target.value })}
+          className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Minimal 6 karakter"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Role</label>
+        <select
+          value={inviteForm.role}
+          onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
+          className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {Object.entries(roleLabels).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Bidang</label>
+        <select
+          value={inviteForm.bidang_id}
+          onChange={(e) => setInviteForm({ ...inviteForm, bidang_id: e.target.value })}
+          className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">— Pilih Bidang —</option>
+          {bidangList.map((b) => (
+            <option key={b.id} value={b.id}>{b.nama}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-end gap-2">
+        <button
+          onClick={handleInvite}
+          disabled={inviteLoading}
+          className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          <Check size={12} /> {inviteLoading ? 'Menyimpan...' : 'Simpan'}
+        </button>
+        <button
+          onClick={() => { setShowInviteForm(false); setInviteForm({ email: '', password: '', full_name: '', role: 'karyawan', bidang_id: '' }) }}
+          className="flex items-center gap-1 px-4 py-2 bg-zinc-700 text-white rounded-lg text-xs font-medium hover:bg-zinc-600 transition-colors"
+        >
+          <X size={12} /> Batal
+        </button>
+      </div>
+    </div>
+  </div>
+)}
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">

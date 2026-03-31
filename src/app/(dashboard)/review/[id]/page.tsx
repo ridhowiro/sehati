@@ -2,6 +2,7 @@ import { getUserRole } from '@/lib/get-user-role'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ReviewDetail from '@/components/log/review-detail'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -16,7 +17,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     redirect('/')
   }
 
-  const supabase = await createClient()
+const supabase = createAdminClient()
 
   const { data: log } = await supabase
     .from('log_bulanan')

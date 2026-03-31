@@ -1,20 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
-
-const bulanNames = [
-  '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-]
-
-const statusColors = {
-  selesai: 'bg-green-500/10 text-green-400 border-green-500/20',
-  proses: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  ditunda: 'bg-red-500/10 text-red-400 border-red-500/20',
-}
+import { updateLogStatus } from '@/app/actions/user'
 
 const nextStatus: Record<string, string> = {
   pic: 'reviewed_pic',
@@ -28,6 +17,12 @@ const urutanMap: Record<string, number> = {
   kepala_sekretariat: 2,
   kasubdit: 3,
   admin: 3,
+}
+
+const statusColors = {
+  selesai: 'bg-green-500/10 text-green-400 border-green-500/20',
+  proses: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+  ditunda: 'bg-red-500/10 text-red-400 border-red-500/20',
 }
 
 export default function ReviewDetail({
@@ -48,7 +43,6 @@ export default function ReviewDetail({
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   const showMsg = (msg: string, isError = false) => {
     if (isError) setError(msg)
@@ -60,31 +54,19 @@ export default function ReviewDetail({
     if (!confirm('Setujui log ini?')) return
     setLoading(true)
 
-    const { error: approvalError } = await supabase
-      .from('log_approval')
-      .insert({
-        log_bulanan_id: log.id,
+    const result = await updateLogStatus(
+      log.id,
+      nextStatus[reviewerRole],
+      {
         reviewer_id: reviewerId,
         role_reviewer: reviewerRole,
-        status: 'approved',
         komentar: komentar || null,
         urutan: urutanMap[reviewerRole],
-        reviewed_at: new Date().toISOString(),
-      })
+      }
+    )
 
-    if (approvalError) {
-      showMsg('Gagal menyimpan approval.', true)
-      setLoading(false)
-      return
-    }
-
-    const { error: updateError } = await supabase
-      .from('log_bulanan')
-      .update({ status: nextStatus[reviewerRole] })
-      .eq('id', log.id)
-
-    if (updateError) {
-      showMsg('Gagal update status log.', true)
+    if (result.error) {
+      showMsg('Gagal: ' + result.error, true)
     } else {
       showMsg('Log berhasil disetujui!')
       setTimeout(() => router.push('/review'), 1500)
@@ -100,31 +82,19 @@ export default function ReviewDetail({
     if (!confirm('Kembalikan log ini untuk direvisi?')) return
     setLoading(true)
 
-    const { error: approvalError } = await supabase
-      .from('log_approval')
-      .insert({
-        log_bulanan_id: log.id,
+    const result = await updateLogStatus(
+      log.id,
+      'revision',
+      {
         reviewer_id: reviewerId,
         role_reviewer: reviewerRole,
-        status: 'revision',
         komentar,
         urutan: urutanMap[reviewerRole],
-        reviewed_at: new Date().toISOString(),
-      })
+      }
+    )
 
-    if (approvalError) {
-      showMsg('Gagal menyimpan.', true)
-      setLoading(false)
-      return
-    }
-
-    const { error: updateError } = await supabase
-      .from('log_bulanan')
-      .update({ status: 'revision' })
-      .eq('id', log.id)
-
-    if (updateError) {
-      showMsg('Gagal update status.', true)
+    if (result.error) {
+      showMsg('Gagal: ' + result.error, true)
     } else {
       showMsg('Log dikembalikan untuk revisi!')
       setTimeout(() => router.push('/review'), 1500)
@@ -151,7 +121,6 @@ export default function ReviewDetail({
         </div>
       )}
 
-      {/* Tabel Kegiatan */}
       <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
           <p className="text-sm font-medium text-zinc-900 dark:text-white">{entries.length} kegiatan</p>
@@ -175,8 +144,12 @@ export default function ReviewDetail({
                 <td className="px-4 py-3 text-zinc-900 dark:text-white">
                   <p>{entry.kegiatan}</p>
                   {entry.link_dokumen && (
-                    <a href={entry.link_dokumen} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-blue-400 hover:text-blue-300 mt-1 block">
+                    <a
+                      href={entry.link_dokumen?.startsWith('http') ? entry.link_dokumen : `https://${entry.link_dokumen}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-400 hover:text-blue-300 mt-1 block"
+                    >
                       Lihat dokumen →
                     </a>
                   )}
@@ -194,7 +167,6 @@ export default function ReviewDetail({
         </table>
       </div>
 
-      {/* Riwayat Approval */}
       {approvals.length > 0 && (
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
           <p className="text-sm font-medium text-zinc-900 dark:text-white mb-3">Riwayat Review</p>
@@ -226,7 +198,6 @@ export default function ReviewDetail({
         </div>
       )}
 
-      {/* Form Review */}
       {canReview && (
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
           <p className="text-sm font-medium text-zinc-900 dark:text-white mb-3">Keputusan Review</p>
