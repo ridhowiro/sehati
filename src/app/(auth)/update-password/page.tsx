@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -9,8 +9,24 @@ export default function UpdatePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [ready, setReady] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    // Cek session yang sudah ada (kalau event fired sebelum listener terdaftar)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        setReady(true)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,8 +52,17 @@ export default function UpdatePasswordPage() {
       return
     }
 
-    router.push('/')
-    router.refresh()
+    router.push('/login')
+  }
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+        <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800 w-full max-w-md text-center">
+          <p className="text-zinc-400 text-sm">Memverifikasi link reset password...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -45,16 +70,12 @@ export default function UpdatePasswordPage() {
       <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800 w-full max-w-md">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-white">Password Baru</h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            Masukkan password baru kamu
-          </p>
+          <p className="text-zinc-400 text-sm mt-1">Masukkan password baru kamu</p>
         </div>
 
         <form onSubmit={handleUpdate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1">
-              Password Baru
-            </label>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">Password Baru</label>
             <input
               type="password"
               value={password}
@@ -66,9 +87,7 @@ export default function UpdatePasswordPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1">
-              Konfirmasi Password
-            </label>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">Konfirmasi Password</label>
             <input
               type="password"
               value={confirmPassword}
