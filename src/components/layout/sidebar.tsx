@@ -113,11 +113,13 @@ export default function Sidebar() {
           {!collapsed && <span>Dashboard</span>}
         </Link>
 
-        {/* Log Bulanan */}
-        <Link href="/log" className={menuItemClass('/log')}>
-          <BookOpen size={18} className="shrink-0" />
-          {!collapsed && <span>Log Bulanan</span>}
-        </Link>
+        {/* Log Bulanan — hanya untuk karyawan */}
+        {role === 'karyawan' && (
+          <Link href="/log" className={menuItemClass('/log')}>
+            <BookOpen size={18} className="shrink-0" />
+            {!collapsed && <span>Log Bulanan</span>}
+          </Link>
+        )}
 
         {/* Review Log — hanya untuk reviewer */}
         {canReview && (

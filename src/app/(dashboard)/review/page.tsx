@@ -1,5 +1,6 @@
+export const dynamic = 'force-dynamic'
+
 import { getUserRole } from '@/lib/get-user-role'
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -18,6 +19,12 @@ const statusConfig = {
   draft: { label: 'Draft', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20' },
 }
 
+const pendingStatus: Record<string, string> = {
+  pic: 'submitted',
+  kepala_sekretariat: 'reviewed_pic',
+  kasubdit: 'verified_kasek',
+}
+
 export default async function ReviewPage() {
   const { userData, role } = await getUserRole()
 
@@ -25,29 +32,111 @@ export default async function ReviewPage() {
     redirect('/')
   }
 
-  const supabase = createAdminClient() // pakai admin client
+  const supabase = createAdminClient()
 
-  let query = supabase
+  // --- Pending logs (perlu direview) ---
+  let pendingQuery = supabase
     .from('log_bulanan')
-    .select(`
-      *,
-      users!log_bulanan_user_id_fkey (full_name, email, bidang_id)
-    `)
-    .not('status', 'eq', 'draft')
+    .select(`*, users!log_bulanan_user_id_fkey (full_name, email, bidang_id)`)
     .order('submitted_at', { ascending: false })
 
-  if (role === 'pic') {
-    query = query.eq('status', 'submitted')
-  } else if (role === 'kepala_sekretariat') {
-    query = query.eq('status', 'reviewed_pic')
-  } else if (role === 'kasubdit') {
-    query = query.eq('status', 'verified_kasek')
+  if (role === 'admin') {
+    pendingQuery = pendingQuery.not('status', 'eq', 'draft')
+  } else {
+    pendingQuery = pendingQuery.eq('status', pendingStatus[role])
+
+    // PIC: filter hanya tim yang sama
+    if (role === 'pic' && userData?.bidang_id) {
+      const { data: teamUsers } = await supabase
+        .from('users')
+        .select('id')
+        .eq('bidang_id', userData.bidang_id)
+      const teamUserIds = (teamUsers ?? []).map((u: any) => u.id)
+      if (teamUserIds.length > 0) {
+        pendingQuery = pendingQuery.in('user_id', teamUserIds)
+      } else {
+        pendingQuery = pendingQuery.in('user_id', ['00000000-0000-0000-0000-000000000000'])
+      }
+    }
   }
 
-  const { data: logs } = await query
+  const { data: pendingLogs } = await pendingQuery
+
+  // --- History logs (sudah pernah direview oleh user ini) ---
+  let historyLogs: any[] = []
+  if (role !== 'admin') {
+    const { data: approvals } = await supabase
+      .from('log_approval')
+      .select('log_bulanan_id')
+      .eq('reviewer_id', userData.id)
+
+    const reviewedIds = (approvals ?? []).map((a: any) => a.log_bulanan_id)
+
+    if (reviewedIds.length > 0) {
+      const { data: hLogs } = await supabase
+        .from('log_bulanan')
+        .select(`*, users!log_bulanan_user_id_fkey (full_name, email, bidang_id)`)
+        .in('id', reviewedIds)
+        .order('submitted_at', { ascending: false })
+      historyLogs = hLogs ?? []
+    }
+  }
+
+  const renderTable = (logs: any[], showReviewButton: boolean) => (
+    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+            <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Nama</th>
+            <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Periode</th>
+            <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Status</th>
+            <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Disubmit</th>
+            <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          {logs.map((log: any) => {
+            const status = statusConfig[log.status as keyof typeof statusConfig]
+            return (
+              <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <td className="px-4 py-3 text-zinc-900 dark:text-white font-medium">
+                  {log.users?.full_name || log.users?.email || '-'}
+                </td>
+                <td className="px-4 py-3 text-zinc-900 dark:text-white">
+                  {bulanNames[log.bulan]} {log.tahun}
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs border ${status?.color ?? ''}`}>
+                    {status?.label ?? log.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-zinc-500">
+                  {log.submitted_at
+                    ? new Date(log.submitted_at).toLocaleDateString('id-ID')
+                    : '-'}
+                </td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/review/${log.id}`}
+                    className={`px-3 py-1 rounded text-xs transition-colors ${
+                      showReviewButton
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    }`}
+                  >
+                    {showReviewButton ? 'Review' : 'Lihat'}
+                  </Link>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">Review Log</h2>
         <p className="text-sm text-zinc-500 mt-1">
@@ -58,56 +147,35 @@ export default async function ReviewPage() {
         </p>
       </div>
 
-      {logs && logs.length > 0 ? (
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Nama</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Periode</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Disubmit</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {logs.map((log: any) => {
-                const status = statusConfig[log.status as keyof typeof statusConfig]
-                return (
-                  <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-4 py-3 text-zinc-900 dark:text-white font-medium">
-                      {log.users?.full_name || log.users?.email || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-900 dark:text-white">
-                      {bulanNames[log.bulan]} {log.tahun}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs border ${status.color}`}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500">
-                      {log.submitted_at
-                        ? new Date(log.submitted_at).toLocaleDateString('id-ID')
-                        : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/review/${log.id}`}
-                        className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
-                      >
-                        Review
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center">
-          <p className="text-zinc-500">Tidak ada log yang perlu direview</p>
+      {/* Menunggu Review */}
+      <div className="space-y-3">
+        {role !== 'admin' && (
+          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+            Menunggu Review
+          </h3>
+        )}
+        {pendingLogs && pendingLogs.length > 0 ? (
+          renderTable(pendingLogs, true)
+        ) : (
+          <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-10 text-center">
+            <p className="text-zinc-500 text-sm">Tidak ada log yang perlu direview</p>
+          </div>
+        )}
+      </div>
+
+      {/* Histori Review — hanya non-admin */}
+      {role !== 'admin' && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+            Histori Review
+          </h3>
+          {historyLogs.length > 0 ? (
+            renderTable(historyLogs, false)
+          ) : (
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-10 text-center">
+              <p className="text-zinc-500 text-sm">Belum ada histori review</p>
+            </div>
+          )}
         </div>
       )}
     </div>
