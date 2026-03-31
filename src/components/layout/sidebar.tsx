@@ -11,6 +11,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Settings,
   Shield,
@@ -22,59 +23,9 @@ import { useRouter } from 'next/navigation'
 
 type UserRole = 'admin' | 'kasubdit' | 'kepala_sekretariat' | 'pic' | 'karyawan'
 
-const allMenuItems = [
-  {
-    title: 'Dashboard',
-    href: '/',
-    icon: LayoutDashboard,
-    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
-  },
-  {
-    title: 'Log Bulanan',
-    href: '/log',
-    icon: BookOpen,
-    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
-  },
-  {
-    title: 'Agenda',
-    href: '/agenda',
-    icon: Calendar,
-    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
-  },
-  {
-    title: 'Kepegawaian',
-    href: '/kepegawaian',
-    icon: Users,
-    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
-  },
-  {
-    title: 'Profil Saya',
-    href: '/profil',
-    icon: Settings,
-    roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic', 'karyawan'],
-  },
-  {
-    title: 'Admin',
-    href: '/admin/users',
-    icon: Shield,
-    roles: ['admin'],
-  },
-    {
-    title: 'Manajemen Bidang',
-    href: '/admin/bidang',
-    icon: Building2,
-    roles: ['admin'],
-  },
-  {
-  title: 'Review Log',
-  href: '/review',
-  icon: ClipboardCheck,
-  roles: ['admin', 'kasubdit', 'kepala_sekretariat', 'pic'],
-},
-]
-
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
   const [role, setRole] = useState<UserRole | null>(null)
   const pathname = usePathname()
   const router = useRouter()
@@ -84,21 +35,19 @@ export default function Sidebar() {
     const fetchRole = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       const { data } = await supabase
         .from('users')
         .select('role')
         .eq('id', user.id)
         .single()
-
       if (data) setRole(data.role as UserRole)
     }
     fetchRole()
   }, [])
 
-  const menuItems = allMenuItems.filter(item =>
-    role ? item.roles.includes(role) : item.roles.includes('karyawan')
-  )
+  useEffect(() => {
+    if (pathname.startsWith('/admin')) setAdminOpen(true)
+  }, [pathname])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -106,13 +55,24 @@ export default function Sidebar() {
     router.refresh()
   }
 
+  const isActive = (href: string) => pathname === href
+
+  const menuItemClass = (href: string) => cn(
+    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+    isActive(href)
+      ? 'bg-zinc-700 text-white'
+      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+  )
+
+  const canReview = role && ['admin', 'kasubdit', 'kepala_sekretariat', 'pic'].includes(role)
+  const isAdmin = role === 'admin'
+
   return (
-    <aside
-      className={cn(
-        'relative flex flex-col h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300',
-        collapsed ? 'w-16' : 'w-60'
-      )}
-    >
+    <aside className={cn(
+      'relative flex flex-col h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300',
+      collapsed ? 'w-16' : 'w-60'
+    )}>
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-zinc-800">
         {!collapsed && (
           <div>
@@ -128,36 +88,95 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 px-2 py-4 space-y-1">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        {/* Dashboard */}
+        <Link href="/" className={menuItemClass('/')}>
+          <LayoutDashboard size={18} className="shrink-0" />
+          {!collapsed && <span>Dashboard</span>}
+        </Link>
+
+        {/* Log Bulanan */}
+        <Link href="/log" className={menuItemClass('/log')}>
+          <BookOpen size={18} className="shrink-0" />
+          {!collapsed && <span>Log Bulanan</span>}
+        </Link>
+
+        {/* Review Log — hanya untuk reviewer */}
+        {canReview && (
+          <Link href="/review" className={menuItemClass('/review')}>
+            <ClipboardCheck size={18} className="shrink-0" />
+            {!collapsed && <span>Review Log</span>}
+          </Link>
+        )}
+
+        {/* Agenda */}
+        <Link href="/agenda" className={menuItemClass('/agenda')}>
+          <Calendar size={18} className="shrink-0" />
+          {!collapsed && <span>Agenda</span>}
+        </Link>
+
+        {/* Kepegawaian */}
+        <Link href="/kepegawaian" className={menuItemClass('/kepegawaian')}>
+          <Users size={18} className="shrink-0" />
+          {!collapsed && <span>Kepegawaian</span>}
+        </Link>
+
+        {/* Admin — collapsible, hanya admin */}
+        {isAdmin && (
+          <div>
+            <button
+              onClick={() => !collapsed && setAdminOpen(!adminOpen)}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                isActive
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                pathname.startsWith('/admin')
                   ? 'bg-zinc-700 text-white'
                   : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
               )}
             >
-              <item.icon size={18} className="shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
-            </Link>
-          )
-        })}
-      </nav>
+              <Shield size={18} className="shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left">Administrasi</span>
+                  <ChevronDown
+                    size={14}
+                    className={cn('transition-transform', adminOpen && 'rotate-180')}
+                  />
+                </>
+              )}
+            </button>
 
-      <div className="px-2 py-4 border-t border-zinc-800">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors w-full"
-        >
-          <LogOut size={18} className="shrink-0" />
-          {!collapsed && <span>Keluar</span>}
-        </button>
-      </div>
+            {adminOpen && !collapsed && (
+              <div className="ml-4 mt-1 space-y-1 border-l border-zinc-800 pl-3">
+                <Link
+                  href="/admin/users"
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive('/admin/users')
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  )}
+                >
+                  <Users size={15} className="shrink-0" />
+                  <span>Manajemen User</span>
+                </Link>
+                <Link
+                  href="/admin/bidang"
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive('/admin/bidang')
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  )}
+                >
+                  <Building2 size={15} className="shrink-0" />
+                  <span>Manajemen Bidang</span>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+      </nav>
     </aside>
   )
 }
