@@ -27,7 +27,7 @@ const roleLabels: Record<UserRole, string> = {
   kasubdit: 'Kasubdit',
   kepala_sekretariat: 'Kepala Sekretariat',
   pic: 'PIC / Koordinator',
-  karyawan: 'Karyawan',
+  karyawan: 'Anggota Tim',
 }
 
 const roleBadgeColors: Record<UserRole, string> = {

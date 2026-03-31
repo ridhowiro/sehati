@@ -3,13 +3,14 @@ import ThemeToggle from '@/components/layout/theme-toggle'
 import UserMenu from '@/components/layout/user-menu'
 import Clock from '@/components/layout/clock'
 import MobileMenuButton from '@/components/layout/mobile-menu-button'
+import TutorialButton from '@/components/onboarding/tutorial-button'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrator',
   kasubdit: 'Kasubdit',
   kepala_sekretariat: 'Kepala Sekretariat',
   pic: 'PIC / Koordinator',
-  karyawan: 'Karyawan',
+  karyawan: 'Anggota Tim',
 }
 
 export default async function Header() {
@@ -28,7 +29,7 @@ export default async function Header() {
     .single()
 
   const initials = userData?.full_name?.slice(0, 2).toUpperCase() || user?.email?.slice(0, 2).toUpperCase() || 'U'
-  const roleLabel = roleLabels[userData?.role] || 'Karyawan'
+  const roleLabel = roleLabels[userData?.role] || 'Anggota Tim'
   const bidangNama = (userData?.bidang as any)?.nama
   const roleDisplay = bidangNama ? `${roleLabel} · ${bidangNama}` : roleLabel
 
@@ -39,6 +40,7 @@ export default async function Header() {
         <Clock />
       </div>
       <div className="flex items-center gap-3">
+        <TutorialButton />
         <ThemeToggle />
         <UserMenu
           fullName={userData?.full_name || user?.email || ''}
