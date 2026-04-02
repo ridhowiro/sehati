@@ -34,13 +34,10 @@ jobs:
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << EOF
             export NVM_DIR="\$HOME/.nvm"
             [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
-            if [ "$BRANCH" = "development" ]; then
-              cd ~/AI_Cowork_Project/sehati
-              git pull origin development
-            else
-              cd ~/claudeworskpace/sehati
-              git pull origin main
-            fi
+            cd ~/claudeworskpace/sehati
+            git fetch origin
+            git checkout $BRANCH
+            git pull origin $BRANCH
             npm install
             npm run build
             pm2 restart sehati || pm2 start npm --name "sehati" -- start
