@@ -18,6 +18,8 @@ import {
   Shield,
   Building2,
   ClipboardCheck,
+  Fingerprint,
+  MapPin,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -129,6 +131,12 @@ export default function Sidebar() {
           </Link>
         )}
 
+        {/* Absensi — semua role */}
+        <Link href="/absensi" className={menuItemClass('/absensi')}>
+          <Fingerprint size={18} className="shrink-0" />
+          {!collapsed && <span>Absensi</span>}
+        </Link>
+
         {/* Agenda */}
         <Link href="/agenda" className={menuItemClass('/agenda')}>
           <Calendar size={18} className="shrink-0" />
@@ -190,6 +198,30 @@ export default function Sidebar() {
                 >
                   <Building2 size={15} className="shrink-0" />
                   <span>Manajemen Bidang</span>
+                </Link>
+                <Link
+                  href="/admin/absensi"
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive('/admin/absensi')
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  )}
+                >
+                  <Fingerprint size={15} className="shrink-0" />
+                  <span>Rekap Absensi</span>
+                </Link>
+                <Link
+                  href="/admin/kantor"
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive('/admin/kantor')
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  )}
+                >
+                  <MapPin size={15} className="shrink-0" />
+                  <span>Konfigurasi Kantor</span>
                 </Link>
               </div>
             )}

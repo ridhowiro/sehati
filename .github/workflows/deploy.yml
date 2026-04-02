@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - development
 
 jobs:
   deploy:
@@ -29,11 +30,17 @@ jobs:
 
       - name: Deploy ke server
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            cd ~/claudeworskpace/sehati
-            git pull origin main
+          BRANCH="${{ github.ref_name }}"
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << EOF
+            export NVM_DIR="\$HOME/.nvm"
+            [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
+            if [ "$BRANCH" = "development" ]; then
+              cd ~/AI_Cowork_Project/sehati
+              git pull origin development
+            else
+              cd ~/claudeworskpace/sehati
+              git pull origin main
+            fi
             npm install
             npm run build
             pm2 restart sehati || pm2 start npm --name "sehati" -- start
