@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { MapPin, Loader2, CheckCircle, LogIn, LogOut, Wifi, RefreshCw } from 'lucide-react'
-import { checkin, checkout } from '@/app/actions/absensi'
+import { MapPin, Loader2, LogIn, LogOut, RefreshCw, AlertTriangle } from 'lucide-react'
+import { checkin, konfirmasiPulangWfh } from '@/app/actions/absensi'
 
 const AbsensiMap = dynamic(() => import('./absensi-map'), { ssr: false, loading: () => (
   <div className="rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" style={{ height: 280 }} />
@@ -63,16 +63,15 @@ export default function CheckinCard({ kantor, absensiHariIni }: CheckinCardProps
   const [error, setError] = useState<string | null>(null)
   const [lokasi, setLokasi] = useState<{ lat: number; lng: number; jarak: number } | null>(null)
   const [fetchingLokasi, setFetchingLokasi] = useState(false)
-  const [isWfh, setIsWfh] = useState(false)
   const [gpsBlocked, setGpsBlocked] = useState(false)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [confirmWfh, setConfirmWfh] = useState(false)
 
   const sudahCheckin = !!absensiHariIni?.checkin_time
   const sudahCheckout = !!absensiHariIni?.checkout_time
   const dalamRadius = lokasi ? lokasi.jarak <= kantor.radius_meter : false
 
-  // Auto-detect GPS saat halaman dibuka (jika belum checkout)
   useEffect(() => {
-    if (sudahCheckout || isWfh) return
     ambilLokasi()
   }, [])
 
@@ -106,25 +105,46 @@ export default function CheckinCard({ kantor, absensiHariIni }: CheckinCardProps
     )
   }
 
-  const handleCheckin = async () => {
-    if (!lokasi && !isWfh) return
+  // Tombol check-in multi-state:
+  // 1. Belum checkin → check-in (auto WFH jika luar radius)
+  // 2. Sudah checkin, belum checkout → klik lagi = pulang (cepat/tepat)
+  // 3. Sudah checkin + checkout → perbarui waktu pulang (jika sudah jam pulang)
+  const checkinLabel = () => {
+    if (!sudahCheckin) return dalamRadius ? 'Check-in' : 'Check-in (WFH)'
+    if (!sudahCheckout) return 'Tandai Pulang'
+    return 'Perbarui Waktu Pulang'
+  }
+
+  const checkinIcon = () => {
+    if (!sudahCheckin) return <LogIn size={15} />
+    return <LogOut size={15} />
+  }
+
+  const handleCheckinBtn = async () => {
+    if (!lokasi) return
     setLoading(true)
     setError(null)
-    const res = await checkin({
-      lat: lokasi?.lat ?? 0,
-      lng: lokasi?.lng ?? 0,
-      is_wfh: isWfh,
-    })
-    if (res.error) setError(res.error)
+    setSuccessMsg(null)
+    const res = await checkin({ lat: lokasi.lat, lng: lokasi.lng })
+    if ('needsWfhConfirm' in res && res.needsWfhConfirm) {
+      setConfirmWfh(true)
+    } else if (res.error) {
+      setError(res.error)
+    } else if (res.action === 'checkout' && res.pulang_cepat) {
+      setSuccessMsg('Waktu pulang tercatat. Catatan: pulang lebih awal dari jam kerja.')
+    } else if (res.action === 'update_checkout') {
+      setSuccessMsg('Waktu pulang diperbarui.')
+    }
     setLoading(false)
   }
 
-  const handleCheckout = async () => {
-    if (!lokasi && !isWfh) return
+  const handleKonfirmasiWfh = async () => {
+    if (!lokasi) return
     setLoading(true)
-    setError(null)
-    const res = await checkout({ lat: lokasi?.lat ?? 0, lng: lokasi?.lng ?? 0 })
+    setConfirmWfh(false)
+    const res = await konfirmasiPulangWfh({ lat: lokasi.lat, lng: lokasi.lng })
     if (res.error) setError(res.error)
+    else setSuccessMsg('Absensi diubah menjadi WFH satu hari penuh.')
     setLoading(false)
   }
 
@@ -178,119 +198,109 @@ export default function CheckinCard({ kantor, absensiHariIni }: CheckinCardProps
       )}
 
       {/* Peta */}
-      {!isWfh && (
-        <div className="space-y-2">
-          <AbsensiMap
-            officeLat={kantor.lat}
-            officeLng={kantor.lng}
-            radiusMeter={kantor.radius_meter}
-            userLat={lokasi?.lat}
-            userLng={lokasi?.lng}
-          />
+      <div className="space-y-2">
+        <AbsensiMap
+          officeLat={kantor.lat}
+          officeLng={kantor.lng}
+          radiusMeter={kantor.radius_meter}
+          userLat={lokasi?.lat}
+          userLng={lokasi?.lng}
+        />
 
-          {/* Status lokasi */}
-          {fetchingLokasi && (
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Loader2 size={12} className="animate-spin" />
-              Mendeteksi lokasi GPS...
-            </div>
-          )}
+        {fetchingLokasi && (
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <Loader2 size={12} className="animate-spin" />
+            Mendeteksi lokasi GPS...
+          </div>
+        )}
 
-          {lokasi && !fetchingLokasi && (
-            <div className={`flex items-center justify-between text-xs px-3 py-2 rounded-lg ${
-              dalamRadius
-                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                : 'bg-red-500/10 text-red-600 dark:text-red-400'
-            }`}>
-              <span className="flex items-center gap-1.5">
-                <MapPin size={11} />
-                {Math.round(lokasi.jarak)} m dari kantor
-                {dalamRadius ? ' — dalam area ✓' : ` — di luar radius ${kantor.radius_meter}m`}
-              </span>
-              <button
-                onClick={ambilLokasi}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 ml-2"
-                title="Refresh lokasi"
-              >
-                <RefreshCw size={11} />
-              </button>
-            </div>
-          )}
+        {lokasi && !fetchingLokasi && (
+          <div className={`flex items-center justify-between text-xs px-3 py-2 rounded-lg ${
+            dalamRadius
+              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+          }`}>
+            <span className="flex items-center gap-1.5">
+              <MapPin size={11} />
+              {Math.round(lokasi.jarak)} m dari kantor
+              {dalamRadius ? ' — dalam area ✓' : ' — di luar area (WFH)'}
+            </span>
+            <button
+              onClick={ambilLokasi}
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 ml-2"
+              title="Refresh lokasi"
+            >
+              <RefreshCw size={11} />
+            </button>
+          </div>
+        )}
 
-          {gpsBlocked && (
-            <p className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg">
-              Izin GPS ditolak. Buka pengaturan browser/HP → izinkan akses lokasi → muat ulang halaman.
-            </p>
-          )}
+        {gpsBlocked && (
+          <p className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg">
+            Izin GPS ditolak. Buka pengaturan browser/HP → izinkan akses lokasi → muat ulang halaman.
+          </p>
+        )}
+      </div>
+
+      {/* Pesan sukses */}
+      {successMsg && (
+        <div className="flex items-start gap-2 text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-3 py-2 rounded-lg">
+          <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+          {successMsg}
         </div>
       )}
 
-      {/* Selesai */}
-      {sudahCheckout ? (
-        <div className="flex items-center gap-2 text-green-500 text-sm">
-          <CheckCircle size={16} />
-          <span>Absensi hari ini selesai</span>
+      {error && (
+        <p className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg">{error}</p>
+      )}
+
+      {/* Dialog konfirmasi WFH */}
+      {confirmWfh && (
+        <div className="rounded-lg border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={15} className="text-orange-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-orange-800 dark:text-orange-300">
+              Anda berada di luar area kantor. Jika lanjut, absensi hari ini akan diubah menjadi <strong>WFH satu hari penuh</strong>.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleKonfirmasiWfh}
+              disabled={loading}
+              className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+            >
+              {loading ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Ya, ubah ke WFH'}
+            </button>
+            <button
+              onClick={() => setConfirmWfh(false)}
+              className="flex-1 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Batal
+            </button>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Toggle WFH */}
-          {!sudahCheckin && (
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <div
-                onClick={() => {
-                  setIsWfh(!isWfh)
-                  setLokasi(null)
-                  setError(null)
-                  if (!isWfh) return // Saat aktifkan WFH, stop
-                  // Saat matikan WFH, auto-detect lagi
-                  setTimeout(ambilLokasi, 100)
-                }}
-                className={`w-9 h-5 rounded-full transition-colors flex items-center ${isWfh ? 'bg-blue-500' : 'bg-zinc-300 dark:bg-zinc-700'}`}
-              >
-                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${isWfh ? 'translate-x-4' : ''}`} />
-              </div>
-              <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
-                <Wifi size={14} />
-                Work from Home (WFH)
-              </span>
-            </label>
-          )}
+      )}
 
-          {error && (
-            <p className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg">{error}</p>
-          )}
+      {/* Satu tombol absensi */}
+      {!confirmWfh && (
+        <button
+          onClick={handleCheckinBtn}
+          disabled={loading || !lokasi || fetchingLokasi}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {loading ? <Loader2 size={15} className="animate-spin" /> : checkinIcon()}
+          {checkinLabel()}
+        </button>
+      )}
 
-          {/* Tombol aksi */}
-          {!sudahCheckin ? (
-            <button
-              onClick={handleCheckin}
-              disabled={loading || (!isWfh && (!lokasi || !dalamRadius))}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <LogIn size={15} />}
-              {isWfh ? 'Check-in (WFH)' : 'Check-in'}
-            </button>
-          ) : (
-            <button
-              onClick={handleCheckout}
-              disabled={loading || (!isWfh && !lokasi)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
-              Check-out
-            </button>
-          )}
-
-          {!isWfh && !lokasi && !fetchingLokasi && !gpsBlocked && (
-            <button
-              onClick={ambilLokasi}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            >
-              <MapPin size={14} />
-              Ambil Lokasi GPS Manual
-            </button>
-          )}
-        </div>
+      {!lokasi && !fetchingLokasi && !gpsBlocked && (
+        <button
+          onClick={ambilLokasi}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <MapPin size={14} />
+          Ambil Lokasi GPS Manual
+        </button>
       )}
 
       {/* Info jam kantor */}

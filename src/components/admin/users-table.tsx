@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { createUser } from '@/app/actions/user'
-import { Pencil, Trash2, X, Check, Plus } from 'lucide-react'
+import { createUser, resetPassword } from '@/app/actions/user'
+import { Pencil, X, Check, Plus, KeyRound, Copy, RefreshCw } from 'lucide-react'
 
 type UserRole = 'admin' | 'kasubdit' | 'kepala_sekretariat' | 'pic' | 'karyawan'
 
@@ -48,6 +48,34 @@ export default function UsersTable({ users, bidangList }: { users: User[], bidan
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [resetState, setResetState] = useState<Record<string, { password: string; loading: boolean; copied: boolean }>>({})
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!'
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  }
+
+  const handleResetPassword = async (userId: string) => {
+    const newPassword = generatePassword()
+    setResetState(s => ({ ...s, [userId]: { password: newPassword, loading: true, copied: false } }))
+    const res = await resetPassword(userId, newPassword)
+    if (res.error) {
+      setMessage('Gagal reset password: ' + res.error)
+      setResetState(s => { const n = { ...s }; delete n[userId]; return n })
+    } else {
+      setResetState(s => ({ ...s, [userId]: { password: newPassword, loading: false, copied: false } }))
+    }
+  }
+
+  const handleCopy = (userId: string, password: string) => {
+    navigator.clipboard.writeText(password)
+    setResetState(s => ({ ...s, [userId]: { ...s[userId], copied: true } }))
+    setTimeout(() => setResetState(s => ({ ...s, [userId]: { ...s[userId], copied: false } })), 2000)
+  }
+
+  const dismissReset = (userId: string) => {
+    setResetState(s => { const n = { ...s }; delete n[userId]; return n })
+  }
   const [showInviteForm, setShowInviteForm] = useState(false)
 const [inviteForm, setInviteForm] = useState({
   email: '',
@@ -316,12 +344,60 @@ const handleInvite = async () => {
                       </button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => startEdit(user)}
-                      className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                    >
-                      Edit
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEdit(user)}
+                          className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        {!resetState[user.id] && (
+                          <button
+                            onClick={() => handleResetPassword(user.id)}
+                            className="flex items-center gap-1 px-3 py-1 bg-orange-500/10 text-orange-500 border border-orange-500/20 rounded text-xs hover:bg-orange-500/20 transition-colors"
+                          >
+                            <KeyRound size={11} /> Reset PW
+                          </button>
+                        )}
+                      </div>
+                      {resetState[user.id] && (
+                        <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg px-2 py-1.5 max-w-xs">
+                          {resetState[user.id].loading ? (
+                            <span className="text-xs text-zinc-400">Mereset...</span>
+                          ) : (
+                            <>
+                              <code className="text-xs font-mono text-zinc-900 dark:text-white flex-1 select-all">
+                                {resetState[user.id].password}
+                              </code>
+                              <button
+                                onClick={() => handleCopy(user.id, resetState[user.id].password)}
+                                title="Salin password"
+                                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 shrink-0"
+                              >
+                                {resetState[user.id].copied
+                                  ? <Check size={13} className="text-green-500" />
+                                  : <Copy size={13} />}
+                              </button>
+                              <button
+                                onClick={() => handleResetPassword(user.id)}
+                                title="Generate ulang"
+                                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 shrink-0"
+                              >
+                                <RefreshCw size={12} />
+                              </button>
+                              <button
+                                onClick={() => dismissReset(user.id)}
+                                title="Tutup"
+                                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 shrink-0"
+                              >
+                                <X size={12} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </td>
               </tr>

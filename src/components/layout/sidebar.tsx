@@ -20,6 +20,8 @@ import {
   ClipboardCheck,
   Fingerprint,
   MapPin,
+  CalendarX2,
+  ClipboardList,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -222,6 +224,30 @@ export default function Sidebar() {
                 >
                   <MapPin size={15} className="shrink-0" />
                   <span>Konfigurasi Kantor</span>
+                </Link>
+                <Link
+                  href="/admin/hari-libur"
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive('/admin/hari-libur')
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  )}
+                >
+                  <CalendarX2 size={15} className="shrink-0" />
+                  <span>Hari Libur</span>
+                </Link>
+                <Link
+                  href="/admin/izin"
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive('/admin/izin')
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  )}
+                >
+                  <ClipboardList size={15} className="shrink-0" />
+                  <span>Izin Karyawan</span>
                 </Link>
               </div>
             )}

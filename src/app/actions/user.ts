@@ -39,6 +39,15 @@ export async function createUser(formData: {
   return { success: true }
 }
 
+export async function resetPassword(userId: string, newPassword: string) {
+  const supabase = createAdminClient()
+  const { error } = await supabase.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  })
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
 export async function updateLogStatus(logId: string, status: string, approvalData: {
   reviewer_id: string
   role_reviewer: string
