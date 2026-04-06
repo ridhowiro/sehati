@@ -20,7 +20,7 @@ export default function DashboardLayout({
           <WelcomeModal />
           <footer className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-2 bg-white dark:bg-zinc-900">
             <p className="text-xs text-zinc-400 text-center">
-              SEHATI Version Beta 0.2 &nbsp;·&nbsp; ©2026 PMU HETI Kemdiktisaintek | Crafted with love ❤️ by NRW with a little AI Magic
+              SEHATI Version Pra rilis 1 &nbsp;·&nbsp; ©2026 PMU HETI Kemdiktisaintek | Crafted with love ❤️ by NRW with a little AI Magic
             </p>
           </footer>
         </div>
