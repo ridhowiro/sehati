@@ -1,4 +1,4 @@
-import { Clock, CheckCircle2, XCircle, AlertCircle, Home, LogIn, LogOut } from 'lucide-react'
+import { Clock, CheckCircle2, XCircle, AlertCircle, Home, LogIn, LogOut, CalendarClock, Plane, HeartPulse, FileText } from 'lucide-react'
 
 interface AbsensiRow {
   id: string
@@ -30,13 +30,32 @@ function durasiMenit(checkin: string, checkout: string) {
 }
 
 const statusMap = {
-  hadir:       { icon: CheckCircle2, color: 'text-green-500',  bg: 'bg-green-500/10 border-green-500/20',  label: 'Hadir' },
-  wfh:         { icon: Home,         color: 'text-blue-500',   bg: 'bg-blue-500/10 border-blue-500/20',   label: 'WFH' },
-  terlambat:   { icon: AlertCircle,  color: 'text-yellow-500', bg: 'bg-yellow-500/10 border-yellow-500/20', label: 'Terlambat' },
-  tidak_hadir: { icon: XCircle,      color: 'text-zinc-400',   bg: 'bg-zinc-500/10 border-zinc-500/20',   label: 'Tidak Hadir' },
+  hadir:        { icon: CheckCircle2,  color: 'text-green-500',  bg: 'bg-green-500/10 border-green-500/20',    label: 'Hadir' },
+  wfh:          { icon: Home,          color: 'text-blue-500',   bg: 'bg-blue-500/10 border-blue-500/20',     label: 'WFH' },
+  terlambat:    { icon: AlertCircle,   color: 'text-yellow-500', bg: 'bg-yellow-500/10 border-yellow-500/20', label: 'Terlambat' },
+  tidak_hadir:  { icon: XCircle,       color: 'text-zinc-400',   bg: 'bg-zinc-500/10 border-zinc-500/20',     label: 'Tidak Hadir' },
+  izin:         { icon: CalendarClock, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', label: 'Izin' },
+  cuti:         { icon: Plane,         color: 'text-blue-400',   bg: 'bg-blue-400/10 border-blue-400/20',     label: 'Cuti' },
+  sakit:        { icon: HeartPulse,    color: 'text-red-400',    bg: 'bg-red-400/10 border-red-400/20',       label: 'Sakit' },
+  surat_tugas:  { icon: FileText,      color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/20', label: 'Surat Tugas' },
 }
 
-export default function HistoryTable({ data }: { data: AbsensiRow[] }) {
+interface IzinRow {
+  tanggal_mulai: string
+  tanggal_selesai: string
+  jenis: string
+  status: 'pending' | 'disetujui' | 'ditolak'
+}
+
+function getIzinForDate(tanggal: string, izinList: IzinRow[]): IzinRow | null {
+  return izinList.find(i =>
+    i.status !== 'ditolak' &&
+    i.tanggal_mulai <= tanggal &&
+    i.tanggal_selesai >= tanggal
+  ) ?? null
+}
+
+export default function HistoryTable({ data, izinList = [] }: { data: AbsensiRow[]; izinList?: IzinRow[] }) {
   if (data.length === 0) {
     return (
       <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-8 text-center">
@@ -55,7 +74,12 @@ export default function HistoryTable({ data }: { data: AbsensiRow[] }) {
 
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {data.map((row) => {
-          const s = statusMap[row.status as keyof typeof statusMap] ?? statusMap.tidak_hadir
+          const izin = getIzinForDate(row.tanggal, izinList)
+          const effectiveStatus = (izin && row.status === 'tidak_hadir')
+            ? izin.jenis
+            : row.status
+          const s = statusMap[effectiveStatus as keyof typeof statusMap] ?? statusMap.tidak_hadir
+          const isPendingIzin = izin?.status === 'pending' && row.status === 'tidak_hadir'
           const Icon = s.icon
           const checkin = fmt(row.checkin_time)
           const checkout = fmt(row.checkout_time)
@@ -80,6 +104,9 @@ export default function HistoryTable({ data }: { data: AbsensiRow[] }) {
                     {s.label}
                     {row.is_late && row.menit_terlambat ? ` +${row.menit_terlambat}m` : ''}
                   </span>
+                  {isPendingIzin && (
+                    <span className="text-[10px] text-yellow-500 italic">menunggu konfirmasi</span>
+                  )}
                 </div>
                 {/* Jam masuk/pulang — tampil di mobile */}
                 <div className="flex items-center gap-3 mt-1 sm:hidden">

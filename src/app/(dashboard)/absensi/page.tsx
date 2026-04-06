@@ -49,10 +49,10 @@ export default async function AbsensiPage() {
       .order('tanggal', { ascending: false }),
     supabase
       .from('izin_karyawan')
-      .select('id, tanggal_mulai, tanggal_selesai, jenis, keterangan, status')
+      .select('id, tanggal_mulai, tanggal_selesai, jenis, keterangan, gdrive_link, status')
       .eq('user_id', user.id)
-      .gte('tanggal_selesai', startOfMonth)
-      .order('tanggal_mulai', { ascending: false }),
+      .order('tanggal_mulai', { ascending: false })
+      .limit(20),
   ])
 
   const izinHariIni = (izinSaya ?? []).find(i =>
@@ -68,7 +68,7 @@ export default async function AbsensiPage() {
   const totalHariKerja = riwayatList.length
 
   const jenisIzinLabel: Record<string, string> = {
-    surat_tugas: 'Surat Tugas', cuti: 'Cuti', sakit: 'Sakit',
+    surat_tugas: 'Surat Tugas', cuti: 'Cuti', sakit: 'Sakit', izin: 'Izin',
   }
 
   return (
@@ -133,7 +133,7 @@ export default async function AbsensiPage() {
 
         {/* Kanan: riwayat */}
         <div className="lg:col-span-3">
-          <HistoryTable data={riwayatList} />
+          <HistoryTable data={riwayatList} izinList={izinSaya ?? []} />
         </div>
       </div>
     </div>

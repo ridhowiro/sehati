@@ -3,15 +3,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+export type JenisIzin = 'izin' | 'cuti' | 'sakit' | 'surat_tugas'
+
 export async function ajukanIzin(data: {
   tanggal_mulai: string
   tanggal_selesai: string
-  jenis: 'surat_tugas' | 'cuti' | 'sakit'
+  jenis: JenisIzin
   keterangan?: string
+  gdrive_link?: string
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi' }
+
+  // ST langsung dikonfirmasi — verifikasi di aplikasi lain
+  const status = data.jenis === 'surat_tugas' ? 'disetujui' : 'pending'
 
   const { error } = await supabase.from('izin_karyawan').insert({
     user_id: user.id,
@@ -19,6 +25,8 @@ export async function ajukanIzin(data: {
     tanggal_selesai: data.tanggal_selesai,
     jenis: data.jenis,
     keterangan: data.keterangan || null,
+    gdrive_link: data.gdrive_link || null,
+    status,
   })
 
   if (error) return { error: error.message }
@@ -80,7 +88,6 @@ export async function createHariLibur(data: {
 export async function importHariLiburFromApi(year: number) {
   const supabase = await createClient()
 
-  // Fetch dari Nager.Date — gratis, tanpa auth, reliable
   let apiData: { date: string; localName: string }[]
   try {
     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ID`, {
@@ -102,7 +109,6 @@ export async function importHariLiburFromApi(year: number) {
     jenis: 'nasional' as const,
   }))
 
-  // upsert → skip duplikat berdasarkan tanggal (unique constraint)
   const { error, count } = await supabase
     .from('hari_libur')
     .upsert(rows, { onConflict: 'tanggal', ignoreDuplicates: true })

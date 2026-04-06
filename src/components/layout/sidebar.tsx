@@ -13,8 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  LogOut,
-  Settings,
   Shield,
   Building2,
   ClipboardCheck,
@@ -22,15 +20,23 @@ import {
   MapPin,
   CalendarX2,
   ClipboardList,
+  UserCheck,
+  BarChart3,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 type UserRole = 'admin' | 'kasubdit' | 'kepala_sekretariat' | 'pic' | 'karyawan'
 
+const subItemClass = (active: boolean) => cn(
+  'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+  active ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+)
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
+  const [kepegawaianOpen, setKepegawaianOpen] = useState(false)
   const [role, setRole] = useState<UserRole | null>(null)
   const { mobileOpen, setMobileOpen } = useSidebar()
   const pathname = usePathname()
@@ -53,6 +59,9 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (pathname.startsWith('/admin')) setAdminOpen(true)
+    if (pathname.startsWith('/kepegawaian') || pathname.startsWith('/admin/izin') || pathname.startsWith('/admin/absensi')) {
+      setKepegawaianOpen(true)
+    }
     setMobileOpen(false)
   }, [pathname])
 
@@ -71,8 +80,17 @@ export default function Sidebar() {
       : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
   )
 
+  const collapsibleButtonClass = (active: boolean) => cn(
+    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+    active ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+  )
+
   const canReview = role && ['admin', 'kasubdit', 'kepala_sekretariat', 'pic'].includes(role)
   const isAdmin = role === 'admin'
+
+  const kepegawaianActive = pathname.startsWith('/kepegawaian')
+    || pathname.startsWith('/admin/izin')
+    || pathname.startsWith('/admin/absensi')
 
   return (
     <>
@@ -86,175 +104,164 @@ export default function Sidebar() {
 
       <aside className={cn(
         'flex flex-col h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300 z-50',
-        // Desktop
         'lg:relative lg:translate-x-0',
         collapsed ? 'lg:w-16' : 'lg:w-60',
-        // Mobile
         'fixed top-0 left-0 w-72',
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-zinc-800">
-        {!collapsed && (
-          <div>
-            <h1 className="text-white font-semibold text-sm">SEHATI</h1>
-            <p className="text-zinc-500 text-xs">Sekretariat HETI</p>
-          </div>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors ml-auto"
-        >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
-      </div>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-5 border-b border-zinc-800">
+          {!collapsed && (
+            <div>
+              <h1 className="text-white font-semibold text-sm">SEHATI</h1>
+              <p className="text-zinc-500 text-xs">Sekretariat HETI</p>
+            </div>
+          )}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors ml-auto"
+          >
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+        </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {/* Dashboard */}
-        <Link href="/" className={menuItemClass('/')}>
-          <LayoutDashboard size={18} className="shrink-0" />
-          {!collapsed && <span>Dashboard</span>}
-        </Link>
+        {/* Nav */}
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
 
-        {/* Log Bulanan — hanya untuk karyawan */}
-        {role === 'karyawan' && (
-          <Link href="/log" className={menuItemClass('/log')}>
-            <BookOpen size={18} className="shrink-0" />
-            {!collapsed && <span>Log Bulanan</span>}
+          {/* === UMUM === */}
+          {!collapsed && <p className="px-3 pt-1 pb-1 text-xs font-semibold text-zinc-600 uppercase tracking-wider">Umum</p>}
+
+          <Link href="/" className={menuItemClass('/')}>
+            <LayoutDashboard size={18} className="shrink-0" />
+            {!collapsed && <span>Dashboard</span>}
           </Link>
-        )}
 
-        {/* Review Log — hanya untuk reviewer */}
-        {canReview && (
-          <Link href="/review" className={menuItemClass('/review')}>
-            <ClipboardCheck size={18} className="shrink-0" />
-            {!collapsed && <span>Review Log</span>}
+          <Link href="/agenda" className={menuItemClass('/agenda')}>
+            <Calendar size={18} className="shrink-0" />
+            {!collapsed && <span>Agenda</span>}
           </Link>
-        )}
 
-        {/* Absensi — semua role */}
-        <Link href="/absensi" className={menuItemClass('/absensi')}>
-          <Fingerprint size={18} className="shrink-0" />
-          {!collapsed && <span>Absensi</span>}
-        </Link>
+          {/* === AKTIVITAS === */}
+          {!collapsed && <p className="px-3 pt-3 pb-1 text-xs font-semibold text-zinc-600 uppercase tracking-wider">Aktivitas</p>}
 
-        {/* Agenda */}
-        <Link href="/agenda" className={menuItemClass('/agenda')}>
-          <Calendar size={18} className="shrink-0" />
-          {!collapsed && <span>Agenda</span>}
-        </Link>
+          <Link href="/absensi" className={menuItemClass('/absensi')}>
+            <Fingerprint size={18} className="shrink-0" />
+            {!collapsed && <span>Absensi</span>}
+          </Link>
 
-        {/* Kepegawaian */}
-        <Link href="/kepegawaian" className={menuItemClass('/kepegawaian')}>
-          <Users size={18} className="shrink-0" />
-          {!collapsed && <span>Kepegawaian</span>}
-        </Link>
+          <Link href="/laporan" className={menuItemClass('/laporan')}>
+            <BarChart3 size={18} className="shrink-0" />
+            {!collapsed && <span>Laporan Rekap</span>}
+          </Link>
 
-        {/* Admin — collapsible, hanya admin */}
-        {isAdmin && (
+          {role === 'karyawan' && (
+            <Link href="/log" className={menuItemClass('/log')}>
+              <BookOpen size={18} className="shrink-0" />
+              {!collapsed && <span>Log Bulanan</span>}
+            </Link>
+          )}
+
+          {canReview && (
+            <Link href="/review" className={menuItemClass('/review')}>
+              <ClipboardCheck size={18} className="shrink-0" />
+              {!collapsed && <span>Review Log</span>}
+            </Link>
+          )}
+
+          {/* === KEPEGAWAIAN === */}
+          {!collapsed && <p className="px-3 pt-3 pb-1 text-xs font-semibold text-zinc-600 uppercase tracking-wider">Kepegawaian</p>}
+
           <div>
             <button
-              onClick={() => !collapsed && setAdminOpen(!adminOpen)}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                pathname.startsWith('/admin')
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-              )}
+              onClick={() => !collapsed && setKepegawaianOpen(!kepegawaianOpen)}
+              className={collapsibleButtonClass(kepegawaianActive)}
             >
-              <Shield size={18} className="shrink-0" />
+              <Users size={18} className="shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="flex-1 text-left">Administrasi</span>
+                  <span className="flex-1 text-left">Kepegawaian</span>
                   <ChevronDown
                     size={14}
-                    className={cn('transition-transform', adminOpen && 'rotate-180')}
+                    className={cn('transition-transform', kepegawaianOpen && 'rotate-180')}
                   />
                 </>
               )}
             </button>
 
-            {adminOpen && !collapsed && (
+            {kepegawaianOpen && !collapsed && (
               <div className="ml-4 mt-1 space-y-1 border-l border-zinc-800 pl-3">
-                <Link
-                  href="/admin/users"
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive('/admin/users')
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                  )}
-                >
-                  <Users size={15} className="shrink-0" />
-                  <span>Manajemen User</span>
+                <Link href="/kepegawaian" className={subItemClass(isActive('/kepegawaian'))}>
+                  <UserCheck size={15} className="shrink-0" />
+                  <span>Data Karyawan</span>
                 </Link>
-                <Link
-                  href="/admin/bidang"
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive('/admin/bidang')
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                  )}
-                >
-                  <Building2 size={15} className="shrink-0" />
-                  <span>Manajemen Bidang</span>
-                </Link>
-                <Link
-                  href="/admin/absensi"
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive('/admin/absensi')
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                  )}
-                >
-                  <Fingerprint size={15} className="shrink-0" />
-                  <span>Rekap Absensi</span>
-                </Link>
-                <Link
-                  href="/admin/kantor"
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive('/admin/kantor')
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                  )}
-                >
-                  <MapPin size={15} className="shrink-0" />
-                  <span>Konfigurasi Kantor</span>
-                </Link>
-                <Link
-                  href="/admin/hari-libur"
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive('/admin/hari-libur')
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                  )}
-                >
-                  <CalendarX2 size={15} className="shrink-0" />
-                  <span>Hari Libur</span>
-                </Link>
-                <Link
-                  href="/admin/izin"
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive('/admin/izin')
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                  )}
-                >
-                  <ClipboardList size={15} className="shrink-0" />
-                  <span>Izin Karyawan</span>
-                </Link>
+                {(canReview || isAdmin) && (
+                  <Link href="/admin/izin" className={subItemClass(isActive('/admin/izin'))}>
+                    <ClipboardList size={15} className="shrink-0" />
+                    <span>Izin Karyawan</span>
+                  </Link>
+                )}
+                {(canReview || isAdmin) && (
+                  <Link href="/admin/absensi" className={subItemClass(isActive('/admin/absensi'))}>
+                    <Fingerprint size={15} className="shrink-0" />
+                    <span>Rekap Absensi</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
-        )}
-      </nav>
-    </aside>
+
+          {/* === ADMINISTRASI (admin only) === */}
+          {isAdmin && (
+            <>
+              {!collapsed && <p className="px-3 pt-3 pb-1 text-xs font-semibold text-zinc-600 uppercase tracking-wider">Administrasi</p>}
+
+              <div>
+                <button
+                  onClick={() => !collapsed && setAdminOpen(!adminOpen)}
+                  className={collapsibleButtonClass(
+                    pathname.startsWith('/admin/users') ||
+                    pathname.startsWith('/admin/bidang') ||
+                    pathname.startsWith('/admin/kantor') ||
+                    pathname.startsWith('/admin/hari-libur')
+                  )}
+                >
+                  <Shield size={18} className="shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left">Pengaturan</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn('transition-transform', adminOpen && 'rotate-180')}
+                      />
+                    </>
+                  )}
+                </button>
+
+                {adminOpen && !collapsed && (
+                  <div className="ml-4 mt-1 space-y-1 border-l border-zinc-800 pl-3">
+                    <Link href="/admin/users" className={subItemClass(isActive('/admin/users'))}>
+                      <Users size={15} className="shrink-0" />
+                      <span>Manajemen User</span>
+                    </Link>
+                    <Link href="/admin/bidang" className={subItemClass(isActive('/admin/bidang'))}>
+                      <Building2 size={15} className="shrink-0" />
+                      <span>Manajemen Bidang</span>
+                    </Link>
+                    <Link href="/admin/kantor" className={subItemClass(isActive('/admin/kantor'))}>
+                      <MapPin size={15} className="shrink-0" />
+                      <span>Konfigurasi Kantor</span>
+                    </Link>
+                    <Link href="/admin/hari-libur" className={subItemClass(isActive('/admin/hari-libur'))}>
+                      <CalendarX2 size={15} className="shrink-0" />
+                      <span>Hari Libur</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </nav>
+      </aside>
     </>
   )
 }
