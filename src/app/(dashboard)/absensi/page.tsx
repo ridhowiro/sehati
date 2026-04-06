@@ -123,16 +123,16 @@ export default async function AbsensiPage() {
       </div>
 
       {/* Main: CheckinCard kiri, riwayat kanan */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         {/* Kiri: aksi */}
-        <div className="lg:col-span-2 space-y-3">
+        <div className="md:col-span-1 xl:col-span-2 space-y-3">
           <CheckinCard kantor={kantor} absensiHariIni={absensiHariIni} />
           <IzinForm izinSaya={izinSaya ?? []} />
           <KoreksiForm absensiList={riwayatList} />
         </div>
 
         {/* Kanan: riwayat */}
-        <div className="lg:col-span-3">
+        <div className="md:col-span-1 xl:col-span-3">
           <HistoryTable data={riwayatList} izinList={izinSaya ?? []} />
         </div>
       </div>
