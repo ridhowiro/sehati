@@ -66,9 +66,10 @@ export default function CompleteProfileModal() {
         tanggal_lahir: form.tanggal_lahir,
         no_hp: form.no_hp,
         alamat: form.alamat,
-      })
+      }, { onConflict: 'user_id' })
 
     if (profilError) {
+      console.error('Profile save error:', profilError)
       setError('Gagal menyimpan profil. Coba lagi.')
     } else {
       setMessage('Profil berhasil dilengkapi!')

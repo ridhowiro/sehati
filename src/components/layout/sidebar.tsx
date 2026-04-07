@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/layout/sidebar-context'
 import {
   LayoutDashboard,
-  BookOpen,
   Calendar,
   Users,
   ChevronLeft,
@@ -20,8 +19,9 @@ import {
   MapPin,
   CalendarX2,
   ClipboardList,
-  UserCheck,
   BarChart3,
+  ActivitySquare,
+  BookOpen,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -36,6 +36,7 @@ const subItemClass = (active: boolean) => cn(
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
+  const [aktivitasOpen, setAktivitasOpen] = useState(false)
   const [kepegawaianOpen, setKepegawaianOpen] = useState(false)
   const [role, setRole] = useState<UserRole | null>(null)
   const { mobileOpen, setMobileOpen } = useSidebar()
@@ -58,8 +59,11 @@ export default function Sidebar() {
   }, [])
 
   useEffect(() => {
-    if (pathname.startsWith('/admin')) setAdminOpen(true)
-    if (pathname.startsWith('/kepegawaian') || pathname.startsWith('/admin/izin') || pathname.startsWith('/admin/absensi')) {
+    if (pathname.startsWith('/admin/users') || pathname.startsWith('/admin/bidang') || pathname.startsWith('/admin/kantor') || pathname.startsWith('/admin/hari-libur')) {
+      setAdminOpen(true)
+    }
+    if (pathname.startsWith('/review')) setAktivitasOpen(true)
+    if (pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan')) {
       setKepegawaianOpen(true)
     }
     setMobileOpen(false)
@@ -85,12 +89,13 @@ export default function Sidebar() {
     active ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
   )
 
+  const isKaryawan = role === 'karyawan'
   const canReview = role && ['admin', 'kasubdit', 'kepala_sekretariat', 'pic'].includes(role)
   const isAdmin = role === 'admin'
 
-  const kepegawaianActive = pathname.startsWith('/kepegawaian')
-    || pathname.startsWith('/admin/izin')
-    || pathname.startsWith('/admin/absensi')
+  const aktivitasActive = pathname.startsWith('/review')
+  const kepegawaianActive = pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan')
+  const pengaturanActive = pathname.startsWith('/admin/users') || pathname.startsWith('/admin/bidang') || pathname.startsWith('/admin/kantor') || pathname.startsWith('/admin/hari-libur')
 
   return (
     <>
@@ -128,44 +133,66 @@ export default function Sidebar() {
         {/* Nav */}
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
 
-          {/* === UMUM === */}
-          {!collapsed && <p className="px-3 pt-1 pb-1 text-xs font-semibold text-zinc-600 uppercase tracking-wider">Umum</p>}
-
+          {/* Dashboard - semua user */}
           <Link href="/" className={menuItemClass('/')}>
             <LayoutDashboard size={18} className="shrink-0" />
             {!collapsed && <span>Dashboard</span>}
           </Link>
 
+          {/* Agenda - semua user */}
           <Link href="/agenda" className={menuItemClass('/agenda')}>
             <Calendar size={18} className="shrink-0" />
             {!collapsed && <span>Agenda</span>}
           </Link>
 
-          {/* === AKTIVITAS === */}
-          {!collapsed && <p className="px-3 pt-3 pb-1 text-xs font-semibold text-zinc-600 uppercase tracking-wider">Aktivitas</p>}
+          {/* Absensi - hanya karyawan */}
+          {isKaryawan && (
+            <Link href="/absensi" className={menuItemClass('/absensi')}>
+              <Fingerprint size={18} className="shrink-0" />
+              {!collapsed && <span>Absensi</span>}
+            </Link>
+          )}
 
-          <Link href="/absensi" className={menuItemClass('/absensi')}>
-            <Fingerprint size={18} className="shrink-0" />
-            {!collapsed && <span>Absensi</span>}
-          </Link>
-
-          <Link href="/laporan" className={menuItemClass('/laporan')}>
-            <BarChart3 size={18} className="shrink-0" />
-            {!collapsed && <span>Laporan Rekap</span>}
-          </Link>
-
-          {role === 'karyawan' && (
+          {/* Log Bulanan - hanya karyawan */}
+          {isKaryawan && (
             <Link href="/log" className={menuItemClass('/log')}>
               <BookOpen size={18} className="shrink-0" />
               {!collapsed && <span>Log Bulanan</span>}
             </Link>
           )}
 
+          {/* === AKTIVITAS === */}
           {canReview && (
-            <Link href="/review" className={menuItemClass('/review')}>
-              <ClipboardCheck size={18} className="shrink-0" />
-              {!collapsed && <span>Review Log</span>}
-            </Link>
+            <>
+              {!collapsed && <p className="px-3 pt-3 pb-1 text-xs font-semibold text-zinc-600 uppercase tracking-wider">Aktivitas</p>}
+
+              <div>
+                <button
+                  onClick={() => !collapsed && setAktivitasOpen(!aktivitasOpen)}
+                  className={collapsibleButtonClass(aktivitasActive)}
+                >
+                  <ActivitySquare size={18} className="shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left">Aktivitas</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn('transition-transform', aktivitasOpen && 'rotate-180')}
+                      />
+                    </>
+                  )}
+                </button>
+
+                {aktivitasOpen && !collapsed && (
+                  <div className="ml-4 mt-1 space-y-1 border-l border-zinc-800 pl-3">
+                    <Link href="/review" className={subItemClass(isActive('/review'))}>
+                      <ClipboardCheck size={15} className="shrink-0" />
+                      <span>Review Log</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* === KEPEGAWAIAN === */}
@@ -190,22 +217,18 @@ export default function Sidebar() {
 
             {kepegawaianOpen && !collapsed && (
               <div className="ml-4 mt-1 space-y-1 border-l border-zinc-800 pl-3">
-                <Link href="/kepegawaian" className={subItemClass(isActive('/kepegawaian'))}>
-                  <UserCheck size={15} className="shrink-0" />
-                  <span>Data Karyawan</span>
-                </Link>
-                {(canReview || isAdmin) && (
+                {/* Izin Tim - hanya non-karyawan */}
+                {!isKaryawan && (
                   <Link href="/admin/izin" className={subItemClass(isActive('/admin/izin'))}>
                     <ClipboardList size={15} className="shrink-0" />
-                    <span>Izin Karyawan</span>
+                    <span>Izin Tim</span>
                   </Link>
                 )}
-                {(canReview || isAdmin) && (
-                  <Link href="/admin/absensi" className={subItemClass(isActive('/admin/absensi'))}>
-                    <Fingerprint size={15} className="shrink-0" />
-                    <span>Rekap Absensi</span>
-                  </Link>
-                )}
+                {/* Laporan Rekap Absensi - semua role (karyawan: lihat milik sendiri) */}
+                <Link href="/laporan" className={subItemClass(isActive('/laporan'))}>
+                  <BarChart3 size={15} className="shrink-0" />
+                  <span>Laporan Rekap Absensi</span>
+                </Link>
               </div>
             )}
           </div>
@@ -218,12 +241,7 @@ export default function Sidebar() {
               <div>
                 <button
                   onClick={() => !collapsed && setAdminOpen(!adminOpen)}
-                  className={collapsibleButtonClass(
-                    pathname.startsWith('/admin/users') ||
-                    pathname.startsWith('/admin/bidang') ||
-                    pathname.startsWith('/admin/kantor') ||
-                    pathname.startsWith('/admin/hari-libur')
-                  )}
+                  className={collapsibleButtonClass(pengaturanActive)}
                 >
                   <Shield size={18} className="shrink-0" />
                   {!collapsed && (
