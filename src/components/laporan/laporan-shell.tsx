@@ -93,7 +93,8 @@ export default function LaporanShell({ availablePeriods, activePeriod, userOptio
       const { AbsensiPDF } = await import('@/components/pdf/absensi-pdf')
       const React = await import('react')
       const blob = await pdf(
-        React.createElement(AbsensiPDF, { rekapList, periode: activePeriod.label })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        React.createElement(AbsensiPDF, { rekapList, periode: activePeriod.label }) as any
       ).toBlob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
