@@ -65,7 +65,9 @@ export default function LogDetail({
 const minDate = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-01`
 
 const lastDay = new Date(log.tahun, log.bulan, 0).getDate()
-const maxDate = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+const lastDayOfMonth = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+const todayWib = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+const maxDate = lastDayOfMonth < todayWib ? lastDayOfMonth : todayWib
 
 
   const isDraft = log.status === 'draft' || log.status === 'revision'
@@ -79,6 +81,10 @@ const maxDate = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-${String(las
   const handleAdd = async () => {
     if (!addForm.tanggal || !addForm.kegiatan) {
       showMsg('Tanggal dan kegiatan wajib diisi!', true)
+      return
+    }
+    if (addForm.tanggal > todayWib) {
+      showMsg('Tidak dapat mengisi log untuk tanggal yang belum terjadi.', true)
       return
     }
     setLoading(true)
@@ -123,6 +129,10 @@ const maxDate = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-${String(las
   }
 
   const saveEdit = async (id: string) => {
+    if (editForm.tanggal > todayWib) {
+      showMsg('Tidak dapat mengisi log untuk tanggal yang belum terjadi.', true)
+      return
+    }
     setLoading(true)
     const { error } = await supabase
       .from('log_entry')
@@ -342,6 +352,7 @@ const maxDate = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-${String(las
                 <td className="px-4 py-3 text-zinc-900 dark:text-white">
                   {editingId === entry.id ? (
                     <input type="date" value={editForm.tanggal}
+                      min={minDate} max={maxDate}
                       onChange={(e) => setEditForm({ ...editForm, tanggal: e.target.value })}
                       className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs text-white w-full" />
                   ) : (

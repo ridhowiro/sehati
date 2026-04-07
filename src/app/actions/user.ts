@@ -9,6 +9,7 @@ export async function createUser(formData: {
   full_name: string
   role: string
   bidang_id: string
+  tanggal_lahir?: string
 }) {
   const supabase = createAdminClient()
 
@@ -35,7 +36,25 @@ export async function createUser(formData: {
     return { error: userError.message }
   }
 
+  if (formData.tanggal_lahir) {
+    await supabase
+      .from('pegawai_profil')
+      .upsert({
+        user_id: authUser.user.id,
+        tanggal_lahir: formData.tanggal_lahir,
+      })
+  }
+
   revalidatePath('/admin/users')
+  return { success: true }
+}
+
+export async function resetPassword(userId: string, newPassword: string) {
+  const supabase = createAdminClient()
+  const { error } = await supabase.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  })
+  if (error) return { error: error.message }
   return { success: true }
 }
 
