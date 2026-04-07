@@ -1,36 +1,185 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SEHATI — Sistem Informasi Sekretariat HETI
 
-## Getting Started
+Aplikasi manajemen kepegawaian dan sekretariat berbasis web untuk PMU HETI, mencakup absensi berbasis geolokasi, log kerja bulanan, manajemen izin, agenda, dan laporan.
 
-First, run the development server:
+---
+
+## Tech Stack
+
+| Layer | Teknologi |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| UI | React 19 + Tailwind CSS 4 + Shadcn UI |
+| Backend | Supabase (PostgreSQL + Auth + Storage) |
+| Maps | Leaflet + React Leaflet |
+| Forms | React Hook Form + Zod |
+| Export | @react-pdf/renderer + XLSX |
+| Date | date-fns |
+
+---
+
+## Fitur Utama
+
+### Absensi
+- Check-in/check-out berbasis geolokasi dengan verifikasi radius kantor
+- Deteksi otomatis WFH jika lokasi di luar radius
+- Tracking keterlambatan dengan hitungan menit
+- Koreksi absensi dengan workflow approval
+- Integrasi otomatis dengan data izin yang sudah disetujui
+
+### Log Kerja Bulanan
+- Input kegiatan harian dengan output dan tag kategori
+- Submisi log per bulan
+- Multi-level review: PIC → Kepala Sekretariat → Kasubdit
+- Status: Draft → Submitted → Reviewed → Approved / Revision
+
+### Manajemen Izin
+- Jenis: Izin, Cuti, Sakit, Surat Tugas
+- Workflow: Pengajuan → Approval → Integrasi absensi otomatis
+- Upload dokumen (Google Drive link)
+
+### Agenda
+- Kalender event/meeting tim
+- Manajemen peserta dan lokasi
+- Hak akses berbasis creator/admin
+
+### Laporan
+- Rekap absensi dan log kerja
+- Export PDF dan Excel
+- Filter per karyawan, bulan, dan tahun
+- Akses sesuai role (karyawan lihat sendiri, PIC lihat tim, admin lihat semua)
+
+### Administrasi (Admin)
+- Manajemen user dan bidang/departemen
+- Konfigurasi kantor: koordinat, radius geofencing, jam masuk/pulang
+- Manajemen hari libur nasional dan cuti bersama
+
+---
+
+## Role & Hak Akses
+
+| Role | Keterangan |
+|------|-----------|
+| `admin` | Akses penuh, manage user & konfigurasi |
+| `kasubdit` | Approve akhir log, lihat semua laporan |
+| `kepala_sekretariat` | Verifikasi log karyawan |
+| `pic` | Review log dan izin tim |
+| `karyawan` | Absensi, log, lihat laporan sendiri |
+
+---
+
+## Struktur Database
+
+### Tabel Utama
+
+| Tabel | Keterangan |
+|-------|-----------|
+| `users` | Data pengguna, terhubung ke Supabase Auth |
+| `pegawai_profil` | Data kepegawaian tambahan (1-to-1 dengan users) |
+| `bidang` | Struktur divisi/departemen (mendukung hierarki) |
+| `absensi` | Record check-in/check-out harian |
+| `absensi_koreksi` | Pengajuan koreksi data absensi |
+| `izin_karyawan` | Pengajuan izin/cuti/surat tugas |
+| `log_bulanan` | Header log kerja per bulan per karyawan |
+| `log_entry` | Detail kegiatan harian dalam log bulanan |
+| `log_approval` | Jejak approval log bulanan |
+| `agenda` | Event/meeting tim |
+| `agenda_peserta` | Daftar peserta per agenda |
+| `kantor_config` | Konfigurasi lokasi dan jam kantor |
+| `hari_libur` | Hari libur nasional dan cuti bersama |
+| `notifikasi` | Notifikasi in-app per user |
+| `dokumen` | Dokumen kepegawaian (SK, kontrak, sertifikat) |
+| `evaluasi` | Evaluasi kinerja per periode |
+
+Semua tabel menggunakan **Row Level Security (RLS)** Supabase.
+
+---
+
+## Struktur Project
+
+```
+src/
+├── app/
+│   ├── (dashboard)/         # Protected routes (dashboard)
+│   │   ├── absensi/         # Halaman absensi
+│   │   ├── agenda/          # Kalender agenda
+│   │   ├── laporan/         # Laporan & rekap
+│   │   ├── log/             # Log kerja bulanan
+│   │   ├── profil/          # Profil pengguna
+│   │   ├── review/          # Review log (reviewer)
+│   │   └── admin/           # Halaman admin
+│   ├── (auth)/              # Reset & update password
+│   ├── api/
+│   │   ├── laporan/users/   # GET users dalam periode
+│   │   └── time/            # GET server time
+│   ├── actions/             # Server Actions (Supabase mutations)
+│   └── login/
+├── components/
+│   ├── absensi/             # Komponen absensi & peta
+│   ├── agenda/              # Kalender & form agenda
+│   ├── log/                 # Log entry & review
+│   ├── laporan/             # Laporan shell
+│   ├── pdf/                 # Komponen export PDF
+│   ├── onboarding/          # Welcome & complete profile modal
+│   ├── layout/              # Sidebar, header, menu
+│   └── ui/                  # Shadcn UI components
+├── lib/
+│   └── supabase/
+│       ├── client.ts        # Browser client
+│       ├── server.ts        # Server client
+│       └── admin.ts         # Admin client (service role)
+└── middleware.ts             # Auth guard
+```
+
+---
+
+## Setup Development
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/ridhowiro/sehati.git
+cd sehati
+npm install
+```
+
+### 2. Environment Variables
+
+Buat file `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+### 3. Jalankan Dev Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Supabase Projects
 
-## Learn More
+| Environment | Project |
+|-------------|---------|
+| Development | `SEHATI-DEVELOPMENT` |
+| Production | `SEHATI` |
 
-To learn more about Next.js, take a look at the following resources:
+Pastikan `.env.local` mengarah ke project yang sesuai.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Branch Strategy
 
-## Deploy on Vercel
+| Branch | Keterangan |
+|--------|-----------|
+| `main` | Production — deploy ke server live |
+| `development` | Development — fitur & bugfix aktif |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Workflow: buat fitur di `development` → PR ke `main` → deploy.
