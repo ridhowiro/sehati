@@ -22,6 +22,7 @@ import {
   BarChart3,
   ActivitySquare,
   BookOpen,
+  HelpCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -232,6 +233,12 @@ export default function Sidebar() {
               </div>
             )}
           </div>
+
+          {/* Panduan - semua user */}
+          <Link href="/panduan" className={menuItemClass('/panduan')}>
+            <HelpCircle size={18} className="shrink-0" />
+            {!collapsed && <span>Panduan</span>}
+          </Link>
 
           {/* === ADMINISTRASI (admin only) === */}
           {isAdmin && (
