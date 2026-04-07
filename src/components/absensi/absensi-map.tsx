@@ -58,7 +58,7 @@ export default function AbsensiMap({
   const centerLng = userLng ?? officeLng
 
   return (
-    <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700" style={{ height: 280 }}>
+    <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700" style={{ height: 280, isolation: 'isolate' }}>
       <MapContainer
         center={[centerLat, centerLng]}
         zoom={17}

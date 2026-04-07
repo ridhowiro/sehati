@@ -15,6 +15,7 @@ interface User {
   is_active: boolean
   bidang_id: string | null
   bidang?: { nama: string } | null
+  pegawai_profil?: { tanggal_lahir: string | null } | null
 }
 
 interface Bidang {
@@ -83,6 +84,7 @@ const [inviteForm, setInviteForm] = useState({
   full_name: '',
   role: 'karyawan',
   bidang_id: '',
+  tanggal_lahir: '',
 })
 const [inviteLoading, setInviteLoading] = useState(false)
   const supabase = createClient()
@@ -101,7 +103,7 @@ const handleInvite = async () => {
     setInviteLoading(false)
   } else {
     setMessage('User berhasil ditambahkan!')
-    setInviteForm({ email: '', password: '', full_name: '', role: 'karyawan', bidang_id: '' })
+    setInviteForm({ email: '', password: '', full_name: '', role: 'karyawan', bidang_id: '', tanggal_lahir: '' })
     setShowInviteForm(false)
     setInviteLoading(false)
     window.location.reload()
@@ -237,6 +239,15 @@ const handleInvite = async () => {
           ))}
         </select>
       </div>
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Tanggal Lahir</label>
+        <input
+          type="date"
+          value={inviteForm.tanggal_lahir}
+          onChange={(e) => setInviteForm({ ...inviteForm, tanggal_lahir: e.target.value })}
+          className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
       <div className="flex items-end gap-2">
         <button
           onClick={handleInvite}
@@ -246,7 +257,7 @@ const handleInvite = async () => {
           <Check size={12} /> {inviteLoading ? 'Menyimpan...' : 'Simpan'}
         </button>
         <button
-          onClick={() => { setShowInviteForm(false); setInviteForm({ email: '', password: '', full_name: '', role: 'karyawan', bidang_id: '' }) }}
+          onClick={() => { setShowInviteForm(false); setInviteForm({ email: '', password: '', full_name: '', role: 'karyawan', bidang_id: '', tanggal_lahir: '' }) }}
           className="flex items-center gap-1 px-4 py-2 bg-zinc-700 text-white rounded-lg text-xs font-medium hover:bg-zinc-600 transition-colors"
         >
           <X size={12} /> Batal
@@ -262,6 +273,7 @@ const handleInvite = async () => {
               <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Email</th>
               <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Role</th>
               <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Bidang</th>
+              <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Tgl Lahir</th>
               <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Status</th>
               <th className="text-left px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Aksi</th>
             </tr>
@@ -305,6 +317,11 @@ const handleInvite = async () => {
                   ) : (
                     user.bidang?.nama || '-'
                   )}
+                </td>
+                <td className="px-4 py-3 text-zinc-500 text-sm">
+                  {user.pegawai_profil?.tanggal_lahir
+                    ? new Date(user.pegawai_profil.tanggal_lahir).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : '-'}
                 </td>
                 <td className="px-4 py-3">
                   {editingId === user.id ? (

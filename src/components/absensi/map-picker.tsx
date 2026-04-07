@@ -51,7 +51,7 @@ interface MapPickerProps {
 
 export default function MapPicker({ lat, lng, radiusMeter, onChange }: MapPickerProps) {
   return (
-    <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative" style={{ height: 320 }}>
+    <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative" style={{ height: 320, isolation: 'isolate' }}>
       <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-white dark:bg-zinc-800 text-xs text-zinc-500 px-3 py-1.5 rounded-full shadow pointer-events-none">
         Klik pada peta untuk pindahkan lokasi kantor
       </div>

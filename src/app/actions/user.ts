@@ -9,6 +9,7 @@ export async function createUser(formData: {
   full_name: string
   role: string
   bidang_id: string
+  tanggal_lahir?: string
 }) {
   const supabase = createAdminClient()
 
@@ -33,6 +34,15 @@ export async function createUser(formData: {
 
   if (userError) {
     return { error: userError.message }
+  }
+
+  if (formData.tanggal_lahir) {
+    await supabase
+      .from('pegawai_profil')
+      .upsert({
+        user_id: authUser.user.id,
+        tanggal_lahir: formData.tanggal_lahir,
+      })
   }
 
   revalidatePath('/admin/users')

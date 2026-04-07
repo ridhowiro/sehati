@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserRole } from '@/lib/get-user-role'
 import { Users, FileText, CheckCircle, Clock } from 'lucide-react'
 import CheckinCard from '@/components/absensi/checkin-card'
+import BirthdayCard from '@/components/dashboard/birthday-card'
+import BirthdayPopup from '@/components/dashboard/birthday-popup'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -28,11 +30,14 @@ export default async function HomePage() {
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
+  const todayMMDD = todayWib.slice(5) // MM-DD
+
   const [
     { data: kantor },
     { data: absensiHariIni },
     { data: allUsers },
     { data: logsThisMonth },
+    { data: birthdayUsers },
   ] = await Promise.all([
     supabase.from('kantor_config').select('*').eq('is_active', true).maybeSingle(),
     supabase
@@ -52,7 +57,25 @@ export default async function HomePage() {
       .select('id, user_id, status')
       .eq('bulan', currentMonth)
       .eq('tahun', currentYear),
+    adminSupabase
+      .from('pegawai_profil')
+      .select('user_id, tanggal_lahir, users!inner(full_name, is_active, avatar_url)')
+      .filter('tanggal_lahir', 'not.is', null),
   ])
+
+  const todayBirthdays = (birthdayUsers ?? [])
+    .filter((p: any) => {
+      if (!p.tanggal_lahir || !p.users?.is_active) return false
+      return p.tanggal_lahir.slice(5) === todayMMDD
+    })
+    .map((p: any) => ({
+      user_id: p.user_id,
+      full_name: p.users.full_name,
+      avatar_url: p.users.avatar_url || null,
+      tanggal_lahir: p.tanggal_lahir,
+    }))
+
+  const isMyBirthday = todayBirthdays.some((b: any) => b.user_id === user.id)
 
   const logIds = logsThisMonth?.map(l => l.id) ?? []
   const { data: allEntries } = logIds.length > 0
@@ -91,6 +114,16 @@ export default async function HomePage() {
           {bulanNames[currentMonth]} {currentYear}
         </p>
       </div>
+
+      {/* Birthday Popup */}
+      {todayBirthdays.length > 0 && (
+        <BirthdayPopup birthdays={todayBirthdays} isMyBirthday={isMyBirthday} />
+      )}
+
+      {/* Birthday Card */}
+      {todayBirthdays.length > 0 && (
+        <BirthdayCard birthdays={todayBirthdays} currentUserId={user.id} />
+      )}
 
       {/* Baris utama: Absensi + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">

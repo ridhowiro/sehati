@@ -22,6 +22,7 @@ export default function ProfilForm({ user, profil, userData }: ProfilFormProps) 
     no_hp: profil?.no_hp || '',
     alamat: profil?.alamat || '',
     jabatan_formal: profil?.jabatan_formal || '',
+    tanggal_lahir: profil?.tanggal_lahir || '',
   })
 
   const [passwords, setPasswords] = useState({
@@ -49,6 +50,7 @@ export default function ProfilForm({ user, profil, userData }: ProfilFormProps) 
         no_hp: form.no_hp,
         alamat: form.alamat,
         jabatan_formal: form.jabatan_formal,
+        tanggal_lahir: form.tanggal_lahir || null,
       })
 
     if (userError || profilError) {
@@ -186,6 +188,15 @@ export default function ProfilForm({ user, profil, userData }: ProfilFormProps) 
                 type="text"
                 value={form.jabatan_formal}
                 onChange={(e) => setForm({ ...form, jabatan_formal: e.target.value })}
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tanggal Lahir</label>
+              <input
+                type="date"
+                value={form.tanggal_lahir}
+                onChange={(e) => setForm({ ...form, tanggal_lahir: e.target.value })}
                 className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

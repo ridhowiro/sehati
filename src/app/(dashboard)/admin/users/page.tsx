@@ -11,7 +11,8 @@ const { data: users, error } = await supabase
     .from('users')
     .select(`
       *,
-      bidang!users_bidang_id_fkey (nama)
+      bidang!users_bidang_id_fkey (nama),
+      pegawai_profil (tanggal_lahir)
     `)
     .order('created_at', { ascending: false })
 
