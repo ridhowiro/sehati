@@ -21,7 +21,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 }
 
 export default async function HomePage() {
-  const { user } = await getUserRole()
+  const { user, role } = await getUserRole()
   const adminSupabase = createAdminClient()
   const supabase = await createClient()
 
@@ -127,15 +127,15 @@ export default async function HomePage() {
 
       {/* Baris utama: Absensi + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* CheckinCard — kiri / atas di mobile */}
-        {kantor && (
+        {/* CheckinCard — hanya karyawan */}
+        {kantor && role === 'karyawan' && (
           <div className="lg:col-span-2">
             <CheckinCard kantor={kantor} absensiHariIni={absensiHariIni} />
           </div>
         )}
 
         {/* Stats — kanan / bawah di mobile */}
-        <div className={`${kantor ? 'lg:col-span-3' : 'lg:col-span-5'} grid grid-cols-2 gap-3 content-start`}>
+        <div className={`${kantor && role === 'karyawan' ? 'lg:col-span-3' : 'lg:col-span-5'} grid grid-cols-2 gap-3 content-start`}>
           <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Users size={15} className="text-zinc-400" />

@@ -41,7 +41,8 @@ export default function ProfilForm({ user, profil, userData }: ProfilFormProps) 
 
     const { error: userError } = await supabase
       .from('users')
-      .upsert({ id: user.id, full_name: form.full_name, email: user.email })
+      .update({ full_name: form.full_name })
+      .eq('id', user.id)
 
     const { error: profilError } = await supabase
       .from('pegawai_profil')
@@ -51,7 +52,7 @@ export default function ProfilForm({ user, profil, userData }: ProfilFormProps) 
         alamat: form.alamat,
         jabatan_formal: form.jabatan_formal,
         tanggal_lahir: form.tanggal_lahir || null,
-      })
+      }, { onConflict: 'user_id' })
 
     if (userError || profilError) {
       setError('Gagal menyimpan profil.')
