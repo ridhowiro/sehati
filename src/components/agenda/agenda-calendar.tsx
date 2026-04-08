@@ -40,6 +40,7 @@ interface Props {
   logDates: string[]
   logEntries: LogEntry[]
   userId: string
+  isKaryawan?: boolean
 }
 
 const BULAN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -62,7 +63,7 @@ const statusKegiatanConfig: Record<string, { label: string; color: string }> = {
 }
 
 export default function AgendaCalendar({
-  year, month, today, hariLibur, agendaList, izinSaya, logDates, logEntries = [], userId,
+  year, month, today, hariLibur, agendaList, izinSaya, logDates, logEntries = [], userId, isKaryawan = false,
 }: Props) {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -314,13 +315,17 @@ export default function AgendaCalendar({
                       </span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => { setLogPrefill(undefined); setShowLogForm(true) }}
-                        className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
-                      >
-                        + Tambah log
-                      </button>
-                      <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                      {isKaryawan && (
+                        <>
+                          <button
+                            onClick={() => { setLogPrefill(undefined); setShowLogForm(true) }}
+                            className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+                          >
+                            + Tambah log
+                          </button>
+                          <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                        </>
+                      )}
                       <Link
                         href="/log"
                         className="text-[11px] text-zinc-500 dark:text-zinc-400 hover:underline whitespace-nowrap"
@@ -396,19 +401,21 @@ export default function AgendaCalendar({
                         )}
                       </div>
 
-                      {/* Aksi: Jadikan Log */}
-                      <div className="pt-1 border-t border-zinc-200 dark:border-zinc-700">
-                        <button
-                          onClick={() => {
-                            setLogPrefill({ kegiatan: a.judul, tag_kategori: 'Rapat', dariAgenda: true })
-                            setShowLogForm(true)
-                          }}
-                          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                        >
-                          <BookMarked size={12} />
-                          Jadikan log harian saya
-                        </button>
-                      </div>
+                      {/* Aksi: Jadikan Log — hanya karyawan */}
+                      {isKaryawan && (
+                        <div className="pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                          <button
+                            onClick={() => {
+                              setLogPrefill({ kegiatan: a.judul, tag_kategori: 'Rapat', dariAgenda: true })
+                              setShowLogForm(true)
+                            }}
+                            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                          >
+                            <BookMarked size={12} />
+                            Jadikan log harian saya
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -430,8 +437,8 @@ export default function AgendaCalendar({
                 )
               )}
 
-              {/* Belum ada log */}
-              {!selectedHasLog && selectedLogEntries.length === 0 && (
+              {/* Belum ada log — hanya karyawan */}
+              {isKaryawan && !selectedHasLog && selectedLogEntries.length === 0 && (
                 <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50 rounded-lg px-3 py-2">
                   <div className="flex items-center gap-1.5">
                     <BookOpen size={13} className="text-zinc-400 shrink-0" />

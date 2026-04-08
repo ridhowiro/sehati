@@ -7,7 +7,7 @@ export default async function AgendaPage({
 }: {
   searchParams: Promise<{ month?: string }>
 }) {
-  const { user } = await getUserRole()
+  const { user, role } = await getUserRole()
   const supabase = await createClient()
   const params = await searchParams
 
@@ -91,6 +91,7 @@ export default async function AgendaPage({
         logDates={logDates}
         logEntries={logEntries}
         userId={user.id}
+        isKaryawan={role === 'karyawan'}
       />
     </div>
   )
