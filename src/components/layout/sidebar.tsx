@@ -23,6 +23,7 @@ import {
   ActivitySquare,
   BookOpen,
   HelpCircle,
+  Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -60,7 +61,7 @@ export default function Sidebar() {
   }, [])
 
   useEffect(() => {
-    if (pathname.startsWith('/admin/users') || pathname.startsWith('/admin/bidang') || pathname.startsWith('/admin/kantor') || pathname.startsWith('/admin/hari-libur')) {
+    if (pathname.startsWith('/admin/users') || pathname.startsWith('/admin/bidang') || pathname.startsWith('/admin/kantor') || pathname.startsWith('/admin/hari-libur') || pathname.startsWith('/admin/pengaturan')) {
       setAdminOpen(true)
     }
     if (pathname.startsWith('/review')) setAktivitasOpen(true)
@@ -96,7 +97,7 @@ export default function Sidebar() {
 
   const aktivitasActive = pathname.startsWith('/review')
   const kepegawaianActive = pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan')
-  const pengaturanActive = pathname.startsWith('/admin/users') || pathname.startsWith('/admin/bidang') || pathname.startsWith('/admin/kantor') || pathname.startsWith('/admin/hari-libur')
+  const pengaturanActive = pathname.startsWith('/admin/users') || pathname.startsWith('/admin/bidang') || pathname.startsWith('/admin/kantor') || pathname.startsWith('/admin/hari-libur') || pathname.startsWith('/admin/pengaturan')
 
   return (
     <>
@@ -279,6 +280,10 @@ export default function Sidebar() {
                     <Link href="/admin/hari-libur" className={subItemClass(isActive('/admin/hari-libur'))}>
                       <CalendarX2 size={15} className="shrink-0" />
                       <span>Hari Libur</span>
+                    </Link>
+                    <Link href="/admin/pengaturan" className={subItemClass(isActive('/admin/pengaturan'))}>
+                      <Settings size={15} className="shrink-0" />
+                      <span>Pengaturan Aplikasi</span>
                     </Link>
                   </div>
                 )}

@@ -220,13 +220,27 @@ export async function updateKantorConfig(data: {
 }) {
   const supabase = await createClient()
 
-  const { error } = await supabase
+  const { data: existing } = await supabase
     .from('kantor_config')
-    .update(data)
+    .select('id')
     .eq('is_active', true)
+    .maybeSingle()
+
+  let error
+  if (existing) {
+    ({ error } = await supabase
+      .from('kantor_config')
+      .update(data)
+      .eq('id', existing.id))
+  } else {
+    ({ error } = await supabase
+      .from('kantor_config')
+      .insert({ ...data, is_active: true }))
+  }
 
   if (error) return { error: error.message }
 
   revalidatePath('/admin/kantor')
+  revalidatePath('/absensi')
   return { success: true }
 }

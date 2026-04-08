@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ChevronLeft,
   ScanFace,
+  CircleDollarSign,
 } from 'lucide-react'
 
 const STORAGE_KEY = 'sehati_onboarding_done'
@@ -44,21 +45,21 @@ const steps = [
   },
   {
     icon: <Calendar className="text-blue-400" size={32} />,
-    title: 'Agenda (Coming Soon)',
+    title: 'Agenda Kegiatan',
     description:
       'Lihat dan catat agenda kegiatan PMU HETI. Semua jadwal penting tersimpan di satu tempat supaya tidak ada yang terlewat.',
   },
   {
-    icon: <Users className="text-blue-400" size={32} />,
-    title: 'Kepegawaian (Coming Soon)',
-    description:
-      'Informasi anggota tim PMU HETI tersedia di sini — termasuk struktur bidang dan kontak yang bisa kamu akses kapan saja.',
-  },
-  {
     icon: <ScanFace className="text-blue-400" size={32} />,
-    title: 'Absensi (Coming Soon)',
+    title: 'Absensi Digital dengan Geotag',
     description:
-      'Fitur absensi digital sedang dalam pengembangan — nantinya kamu bisa melakukan check-in dan check-out langsung dari SEHATI. Ditunggu ya! 🙌',
+      'Fitur absensi digital dengan geotag memungkinkan kamu untuk melakukan absensi secara online dengan lokasi yang terverifikasi. Cukup buka aplikasi, lakukan absensi, dan sistem akan mencatat lokasi kamu saat itu. Praktis dan efisien untuk memastikan kehadiran di mana pun.',
+  },
+    {
+    icon: <CircleDollarSign className="text-blue-400" size={32} />,
+    title: 'Fitur Keuangan Pribadi (Coming Soon)',
+    description:
+      'Kelola keuangan pribadimu dengan mudah melalui SEHATI. Catat data dan pantau keuanganmu, dan dapatkan laporan keuangan yang akurat setiap bulannya.',
   },
   {
     icon: <span className="text-4xl">🚀</span>,
