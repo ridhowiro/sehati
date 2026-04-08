@@ -2,6 +2,12 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { createNotifikasi, getUsersByRole } from '@/lib/notifikasi'
+
+const bulanNames = [
+  '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+]
 
 export async function createUser(formData: {
   email: string
@@ -86,6 +92,60 @@ export async function updateLogStatus(logId: string, status: string, approvalDat
     .eq('id', logId)
 
   if (updateError) return { error: updateError.message }
+
+  // Ambil data log untuk pesan notifikasi
+  const { data: log } = await supabase
+    .from('log_bulanan')
+    .select('user_id, bulan, tahun, users!log_bulanan_user_id_fkey(full_name, email)')
+    .eq('id', logId)
+    .single()
+
+  if (log) {
+    const nama = (log.users as any)?.full_name || (log.users as any)?.email || 'Karyawan'
+    const periode = `${bulanNames[log.bulan]} ${log.tahun}`
+    const link = `/review/${logId}`
+    const linkLog = `/log/${logId}`
+
+    if (status === 'revision') {
+      // Notif ke pemilik log: diminta revisi
+      await createNotifikasi({
+        user_id: log.user_id,
+        judul: 'Log Perlu Direvisi',
+        pesan: `Log ${periode} kamu diminta revisi. ${approvalData.komentar ? `Catatan: ${approvalData.komentar}` : ''}`,
+        tipe: 'log_revision',
+        link: linkLog,
+      })
+    } else if (status === 'reviewed_pic') {
+      // PIC selesai review → notif ke Kasek
+      const kasekIds = await getUsersByRole('kepala_sekretariat')
+      await createNotifikasi(kasekIds.map(id => ({
+        user_id: id,
+        judul: 'Log Menunggu Verifikasi',
+        pesan: `Log ${periode} dari ${nama} telah disetujui PIC dan menunggu verifikasi kamu.`,
+        tipe: 'log_reviewed_pic' as const,
+        link,
+      })))
+    } else if (status === 'verified_kasek') {
+      // Kasek selesai → notif ke Kasubdit
+      const kasubditIds = await getUsersByRole('kasubdit')
+      await createNotifikasi(kasubditIds.map(id => ({
+        user_id: id,
+        judul: 'Log Menunggu Persetujuan',
+        pesan: `Log ${periode} dari ${nama} telah diverifikasi Kasek dan menunggu persetujuan kamu.`,
+        tipe: 'log_verified_kasek' as const,
+        link,
+      })))
+    } else if (status === 'approved') {
+      // Final approved → notif ke pemilik log
+      await createNotifikasi({
+        user_id: log.user_id,
+        judul: 'Log Disetujui',
+        pesan: `Log ${periode} kamu telah disetujui.`,
+        tipe: 'log_approved',
+        link: linkLog,
+      })
+    }
+  }
 
   revalidatePath('/review')
   return { success: true }

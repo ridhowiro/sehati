@@ -4,6 +4,7 @@ import UserMenu from '@/components/layout/user-menu'
 import Clock from '@/components/layout/clock'
 import MobileMenuButton from '@/components/layout/mobile-menu-button'
 import TutorialButton from '@/components/onboarding/tutorial-button'
+import NotificationBell from '@/components/layout/notification-bell'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrator',
@@ -41,6 +42,7 @@ export default async function Header() {
       </div>
       <div className="flex items-center gap-3">
         <TutorialButton />
+        <NotificationBell userId={user?.id ?? ''} />
         <ThemeToggle />
         <UserMenu
           fullName={userData?.full_name || user?.email || ''}

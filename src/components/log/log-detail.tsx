@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, Pencil, Trash2, X, Check, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { submitLog } from '@/app/actions/log'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -178,15 +179,9 @@ const maxDate = lastDayOfMonth < todayWib ? lastDayOfMonth : todayWib
     if (!confirm(`Submit log ${bulanNames[log.bulan]} ${log.tahun} ke PIC untuk direview?`)) return
 
     setLoading(true)
-    const { error } = await supabase
-      .from('log_bulanan')
-      .update({
-        status: 'submitted',
-        submitted_at: new Date().toISOString(),
-      })
-      .eq('id', log.id)
+    const result = await submitLog(log.id)
 
-    if (error) {
+    if (result.error) {
       showMsg('Gagal submit log.', true)
     } else {
       showMsg('Log berhasil disubmit ke PIC!')
