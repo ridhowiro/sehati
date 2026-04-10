@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { createNotifikasi, getUsersByRole } from '@/lib/notifikasi'
+import { requireRole } from '@/lib/get-user-role'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -17,6 +18,7 @@ export async function createUser(formData: {
   bidang_id: string
   tanggal_lahir?: string
 }) {
+  await requireRole(['admin'])
   const supabase = createAdminClient()
 
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
@@ -56,6 +58,7 @@ export async function createUser(formData: {
 }
 
 export async function resetPassword(userId: string, newPassword: string) {
+  await requireRole(['admin'])
   const supabase = createAdminClient()
   const { error } = await supabase.auth.admin.updateUserById(userId, {
     password: newPassword,
@@ -70,6 +73,7 @@ export async function updateLogStatus(logId: string, status: string, approvalDat
   komentar: string | null
   urutan: number
 }) {
+  await requireRole(['admin', 'kasubdit', 'kepala_sekretariat', 'pic'])
   const supabase = createAdminClient()
 
   const { error: approvalError } = await supabase

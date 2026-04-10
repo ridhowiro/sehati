@@ -31,6 +31,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/update-password')
 
   const isMaintenancePage = pathname.startsWith('/maintenance')
+  const isVerifyPage = pathname.startsWith('/verify')
 
   if (user && pathname.startsWith('/login')) {
     const url = request.nextUrl.clone()
@@ -38,7 +39,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (!user && !isAuthPage && !isMaintenancePage) {
+  if (!user && !isAuthPage && !isMaintenancePage && !isVerifyPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -46,29 +47,18 @@ export async function middleware(request: NextRequest) {
 
   // Cek maintenance mode untuk user yang sudah login
   if (user && !isAuthPage && !isMaintenancePage) {
-    const { data: setting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'maintenance_mode')
-      .single()
+    const [{ data: setting }, { data: userData }] = await Promise.all([
+      supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single(),
+      supabase.from('users').select('role').eq('id', user.id).single(),
+    ])
 
     const isMaintenanceActive = setting?.value === 'true'
+    const isAdmin = userData?.role === 'admin'
 
-    if (isMaintenanceActive) {
-      // Cek apakah user adalah admin
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      const isAdmin = userData?.role === 'admin'
-
-      if (!isAdmin) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/maintenance'
-        return NextResponse.redirect(url)
-      }
+    if (isMaintenanceActive && !isAdmin) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/maintenance'
+      return NextResponse.redirect(url)
     }
   }
 

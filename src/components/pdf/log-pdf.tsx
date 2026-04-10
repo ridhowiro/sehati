@@ -160,7 +160,7 @@ interface LogPDFProps {
     full_name: string
     jabatan_formal?: string | null
   }
-  qrDataUrl: string
+  qrDataUrl: string | null
   baseUrl: string
 }
 
@@ -310,11 +310,13 @@ export function LogPDF({ log, entries, approvals, userData, qrDataUrl }: LogPDFP
             )}
           </View>
 
-          {/* QR Code */}
-          <View style={styles.qrBox}>
-            <Image src={qrDataUrl} style={styles.qrImage} />
-            <Text style={styles.qrLabel}>Scan untuk verifikasi</Text>
-          </View>
+          {/* QR Code — hanya muncul jika sudah disetujui */}
+          {qrDataUrl && (
+            <View style={styles.qrBox}>
+              <Image src={qrDataUrl} style={styles.qrImage} />
+              <Text style={styles.qrLabel}>Scan untuk verifikasi</Text>
+            </View>
+          )}
         </View>
       </Page>
     </Document>

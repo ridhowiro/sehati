@@ -60,14 +60,12 @@ export default async function HomePage() {
     adminSupabase
       .from('pegawai_profil')
       .select('user_id, tanggal_lahir, users!inner(full_name, is_active, avatar_url)')
-      .filter('tanggal_lahir', 'not.is', null),
+      .filter('tanggal_lahir', 'not.is', null)
+      .like('tanggal_lahir', `%-${todayMMDD}`),
   ])
 
   const todayBirthdays = (birthdayUsers ?? [])
-    .filter((p: any) => {
-      if (!p.tanggal_lahir || !p.users?.is_active) return false
-      return p.tanggal_lahir.slice(5) === todayMMDD
-    })
+    .filter((p: any) => p.users?.is_active)
     .map((p: any) => ({
       user_id: p.user_id,
       full_name: p.users.full_name,

@@ -23,11 +23,13 @@ export default function DownloadPDFButton({ log, entries, approvals, userData }:
       const baseUrl = window.location.origin
       const verifyUrl = `${baseUrl}/verify/${log.id}`
 
-      const qrDataUrl = await QRCode.default.toDataURL(verifyUrl, {
-        width: 200,
-        margin: 1,
-        color: { dark: '#000000', light: '#ffffff' },
-      })
+      const qrDataUrl = log.status === 'approved'
+        ? await QRCode.default.toDataURL(verifyUrl, {
+            width: 200,
+            margin: 1,
+            color: { dark: '#000000', light: '#ffffff' },
+          })
+        : null
 
       const blob = await pdf(
         <LogPDF

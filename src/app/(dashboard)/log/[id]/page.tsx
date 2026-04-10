@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getUserRole } from '@/lib/get-user-role'
 import { redirect } from 'next/navigation'
 import LogDetail from '@/components/log/log-detail'
@@ -12,9 +11,8 @@ const bulanNames = [
 
 export default async function LogDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { user } = await getUserRole()
+  const { user, userData } = await getUserRole()
   const supabase = await createClient()
-  const adminSupabase = createAdminClient()
 
   const { data: log } = await supabase
     .from('log_bulanan')
@@ -32,31 +30,19 @@ export default async function LogDetailPage({ params }: { params: Promise<{ id: 
 
   const { data: approvalsRaw } = await supabase
     .from('log_approval')
-    .select('*')
+    .select('*, users!log_approval_reviewer_id_fkey(full_name)')
     .eq('log_bulanan_id', id)
     .order('urutan', { ascending: true })
 
-  const approvals = await Promise.all(
-    (approvalsRaw || []).map(async (approval) => {
-      const { data: reviewer } = await adminSupabase
-        .from('users')
-        .select('full_name')
-        .eq('id', approval.reviewer_id)
-        .single()
-      return { ...approval, reviewer }
-    })
-  )
+  const approvals = (approvalsRaw || []).map((approval) => {
+    const { users, ...rest } = approval as any
+    return { ...rest, reviewer: users }
+  })
 
   const { data: profil } = await supabase
     .from('pegawai_profil')
     .select('jabatan_formal')
     .eq('user_id', user.id)
-    .single()
-
-  const { data: userData } = await adminSupabase
-    .from('users')
-    .select('full_name')
-    .eq('id', user.id)
     .single()
 
   return (

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 // --- 8-bit Sound Engine (Web Audio API) ---
 function createAudioCtx() {
@@ -62,6 +64,16 @@ function getRandomEmoji() {
 }
 
 export default function MaintenancePage() {
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleRefresh = () => router.refresh()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'ended'>('idle')
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION)
@@ -265,10 +277,26 @@ export default function MaintenancePage() {
         )}
       </div>
 
-      {/* Footer note */}
-      <p className="text-xs text-zinc-400 text-center">
-        Butuh bantuan? Hubungi administrator sistem.
-      </p>
+      {/* Footer note + actions */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex gap-2">
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+          >
+            🔄 Coba Lagi
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+          >
+            🚪 Logout
+          </button>
+        </div>
+        <p className="text-xs text-zinc-400 text-center">
+          Butuh bantuan? Hubungi administrator sistem.
+        </p>
+      </div>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { createNotifikasi, getUsersByRole, getPicByBidang } from '@/lib/notifikasi'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireRole } from '@/lib/get-user-role'
 
 const jenisLabel: Record<string, string> = {
   izin: 'Izin',
@@ -76,6 +77,7 @@ export async function prosesIzin(
   action: 'disetujui' | 'ditolak',
   catatan?: string
 ) {
+  await requireRole(['admin', 'pic', 'kepala_sekretariat', 'kasubdit'])
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi' }
@@ -119,6 +121,8 @@ export async function prosesIzin(
 
 export async function hapusIzin(izinId: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Tidak terautentikasi' }
   const { error } = await supabase
     .from('izin_karyawan')
     .delete()
@@ -135,6 +139,7 @@ export async function createHariLibur(data: {
   nama: string
   jenis: 'nasional' | 'cuti_bersama'
 }) {
+  await requireRole(['admin'])
   const supabase = await createClient()
   const { error } = await supabase.from('hari_libur').insert(data)
   if (error) return { error: error.message }
@@ -143,6 +148,7 @@ export async function createHariLibur(data: {
 }
 
 export async function importHariLiburFromApi(year: number) {
+  await requireRole(['admin'])
   const supabase = await createClient()
 
   let apiData: { date: string; localName: string }[]
@@ -178,6 +184,7 @@ export async function importHariLiburFromApi(year: number) {
 }
 
 export async function deleteHariLibur(id: string) {
+  await requireRole(['admin'])
   const supabase = await createClient()
   const { error } = await supabase.from('hari_libur').delete().eq('id', id)
   if (error) return { error: error.message }

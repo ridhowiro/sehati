@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireRole } from '@/lib/get-user-role'
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000
@@ -187,6 +188,7 @@ export async function prosesKoreksi(
   action: 'disetujui' | 'ditolak',
   catatan?: string
 ) {
+  await requireRole(['admin', 'pic', 'kepala_sekretariat', 'kasubdit'])
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi' }
@@ -218,6 +220,7 @@ export async function updateKantorConfig(data: {
   jam_pulang_senin_kamis: string
   jam_pulang_jumat: string
 }) {
+  await requireRole(['admin'])
   const supabase = await createClient()
 
   const { data: existing } = await supabase

@@ -107,31 +107,33 @@ export default async function VerifyPage({ params }: { params: Promise<{ id: str
         </div>
         {/* Tabel Kegiatan */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Detail Kegiatan</h2>
-        <table className="w-full text-sm">
-            <thead>
-            <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Tanggal</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Kegiatan</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Output</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Kategori</th>
-            </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-            {entries?.map((entry: any) => (
-                <tr key={entry.id}>
-                <td className="py-2 px-3 text-gray-600 text-xs whitespace-nowrap">
-                    {new Date(entry.tanggal).toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'short', year: 'numeric'
-                    })}
-                </td>
-                <td className="py-2 px-3 text-gray-900 text-xs">{entry.kegiatan}</td>
-                <td className="py-2 px-3 text-gray-600 text-xs">{entry.output || '-'}</td>
-                <td className="py-2 px-3 text-gray-600 text-xs">{entry.tag_kategori || '-'}</td>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Detail Kegiatan</h2>
+          <div className="overflow-x-auto -mx-6 px-6">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs whitespace-nowrap">Tanggal</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Kegiatan</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Output</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs whitespace-nowrap">Kategori</th>
                 </tr>
-            ))}
-            </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {entries?.map((entry: any) => (
+                  <tr key={entry.id}>
+                    <td className="py-2 px-3 text-gray-600 text-xs whitespace-nowrap">
+                      {new Date(entry.tanggal).toLocaleDateString('id-ID', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                      })}
+                    </td>
+                    <td className="py-2 px-3 text-gray-900 text-xs">{entry.kegiatan}</td>
+                    <td className="py-2 px-3 text-gray-600 text-xs">{entry.output || '-'}</td>
+                    <td className="py-2 px-3 text-gray-600 text-xs whitespace-nowrap">{entry.tag_kategori || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
         {/* Riwayat Approval */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
