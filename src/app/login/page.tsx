@@ -1,9 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+
+const FEATURE_MESSAGES = [
+  { text: 'Yuk masuk dulu, log bulananmu nunggu nih', emoji: '📝' },
+  { text: 'Absen check-in & check-out langsung dari sini', emoji: '📍' },
+  { text: 'Pantau status review log bulananmu real-time', emoji: '🔍' },
+  { text: 'Ajukan izin & koreksi absensi dengan mudah', emoji: '📋' },
+  { text: 'Lihat agenda & jadwal kegiatanmu hari ini', emoji: '📅' },
+  { text: 'Rekap laporan bulanan tersedia kapan saja', emoji: '📊' },
+  { text: 'Cek riwayat absensi & keterlambatanmu', emoji: '🕐' },
+  { text: 'Semua kegiatan tercatat rapi di satu tempat', emoji: '✅' },
+]
+
+function generateCaptcha() {
+  const a = Math.floor(Math.random() * 10) + 1
+  const b = Math.floor(Math.random() * 10) + 1
+  return { a, b, answer: a + b }
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,18 +28,46 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [captcha, setCaptcha] = useState(() => generateCaptcha())
+  const [captchaInput, setCaptchaInput] = useState('')
+  const [msgIndex, setMsgIndex] = useState(0)
+  const [msgVisible, setMsgVisible] = useState(true)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgVisible(false)
+      setTimeout(() => {
+        setMsgIndex((i) => (i + 1) % FEATURE_MESSAGES.length)
+        setMsgVisible(true)
+      }, 400)
+    }, 3500)
+    return () => clearInterval(interval)
+  }, [])
+
+  const refreshCaptcha = useCallback(() => {
+    setCaptcha(generateCaptcha())
+    setCaptchaInput('')
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    if (parseInt(captchaInput, 10) !== captcha.answer) {
+      setError('Jawaban captcha-nya salah nih, coba lagi ya 🤖')
+      refreshCaptcha()
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError('Hmm, email atau password-nya kayaknya kurang tepat nih 🤔')
+      refreshCaptcha()
       setLoading(false)
       return
     }
@@ -101,9 +146,19 @@ export default function LoginPage() {
           <div className="mb-8">
             <p className="text-2xl mb-1">{emoji}</p>
             <h1 className="text-2xl font-semibold text-white mb-1">{text}!</h1>
-            <p className="text-zinc-400 text-sm">
-              Yuk masuk dulu, log bulananmu nunggu nih 😄
-            </p>
+            <div className="h-6 overflow-hidden">
+              <p
+                className="text-zinc-400 text-sm flex items-center gap-1.5 transition-all duration-400"
+                style={{
+                  opacity: msgVisible ? 1 : 0,
+                  transform: msgVisible ? 'translateY(0)' : 'translateY(6px)',
+                  transition: 'opacity 0.4s ease, transform 0.4s ease',
+                }}
+              >
+                <span>{FEATURE_MESSAGES[msgIndex].emoji}</span>
+                <span>{FEATURE_MESSAGES[msgIndex].text}</span>
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -148,6 +203,32 @@ export default function LoginPage() {
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors text-xs"
                 >
                   {showPassword ? 'Sembunyikan' : 'Tampilkan'}
+                </button>
+              </div>
+            </div>
+
+            {/* Captcha */}
+            <div className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                Verifikasi: berapa hasil dari{' '}
+                <span className="text-blue-400 font-semibold">{captcha.a} + {captcha.b}</span>?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={captchaInput}
+                  onChange={(e) => setCaptchaInput(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-white text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Jawaban..."
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={refreshCaptcha}
+                  className="px-3 py-2.5 text-zinc-400 hover:text-zinc-200 border border-zinc-700 rounded-xl transition-colors text-sm"
+                  title="Ganti soal"
+                >
+                  ↻
                 </button>
               </div>
             </div>
