@@ -20,7 +20,7 @@ export default function UpdatePasswordPage() {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+      if (event === 'PASSWORD_RECOVERY') {
         setReady(true)
       }
     })
