@@ -206,7 +206,7 @@ export default function LogEntryForm({ tanggal, year, month, userId, prefill, on
                 onChange={e => setForm(f => ({ ...f, kegiatan: e.target.value }))}
                 placeholder="Deskripsikan kegiatan yang dilakukan..."
                 rows={3}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none"
               />
             </div>
 
@@ -218,7 +218,7 @@ export default function LogEntryForm({ tanggal, year, month, userId, prefill, on
                 value={form.output}
                 onChange={e => setForm(f => ({ ...f, output: e.target.value }))}
                 placeholder="Dokumen, laporan, notulen, dll..."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               />
             </div>
 
@@ -230,7 +230,7 @@ export default function LogEntryForm({ tanggal, year, month, userId, prefill, on
                 value={form.link_dokumen}
                 onChange={e => setForm(f => ({ ...f, link_dokumen: e.target.value }))}
                 placeholder="https://drive.google.com/..."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               />
             </div>
 

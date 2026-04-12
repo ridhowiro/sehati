@@ -103,7 +103,7 @@ export default function LoginPage() {
             <img src="/logo/logo-ditdaya.png" alt="Ditdaya" className="h-10 w-auto object-contain" />
             <img src="/logo/logo-heti.png" alt="HETI" className="h-10 w-auto object-contain" />
           </div>
-          <p className="text-zinc-500 text-sm mt-1">Sekretariat PMU HETI · Kemdiktisaintek</p>
+          <p className="text-zinc-500 text-sm mt-1">Sekretariat PMU HETI · Direktorat Sumber Daya,<br />Direktorat Jenderal Pendidikan Tinggi, Kemdiktisaintek RI</p>
         </div>
 
         <div className="relative space-y-6">

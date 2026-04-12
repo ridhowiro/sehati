@@ -149,7 +149,7 @@ export default function IzinForm({ izinSaya: initial }: { izinSaya: IzinSaya[] }
                   value={form.keterangan}
                   onChange={e => setForm({ ...form, keterangan: e.target.value })}
                   placeholder="Misal: nama acara, nomor ST, dsb."
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400"
                 />
               </div>
 
@@ -163,7 +163,7 @@ export default function IzinForm({ izinSaya: initial }: { izinSaya: IzinSaya[] }
                   value={form.gdrive_link}
                   onChange={e => setForm({ ...form, gdrive_link: e.target.value })}
                   placeholder="https://drive.google.com/..."
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400"
                 />
                 <p className="text-[11px] text-zinc-400 mt-1">Upload dokumen ke Google Drive tim, lalu paste linknya di sini.</p>
               </div>

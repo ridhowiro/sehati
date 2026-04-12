@@ -125,7 +125,7 @@ export default function ReviewLogTable({ logs, showReviewButton, showSearch = tr
                 placeholder="Cari nama..."
                 value={searchNama}
                 onChange={e => setSearchNama(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
               />
             </div>
           </div>
