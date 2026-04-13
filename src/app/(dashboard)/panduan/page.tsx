@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Download, BookOpen, Users, Clock, ClipboardList, Calendar, BarChart2, Settings } from 'lucide-react'
+import { FileText, Download, BookOpen, Users, Clock, ClipboardList, Calendar, BarChart2, Settings, Wallet } from 'lucide-react'
 
 const fitur = [
   { icon: Clock, title: 'Absensi', desc: 'Check-in/out berbasis geolokasi, koreksi absensi, riwayat harian.' },
@@ -10,6 +10,7 @@ const fitur = [
   { icon: Calendar, title: 'Agenda', desc: 'Kalender bersama untuk event dan meeting tim.' },
   { icon: BarChart2, title: 'Laporan & Export', desc: 'Rekap absensi dan log, export ke PDF dan Excel.' },
   { icon: Settings, title: 'Administrasi', desc: 'Kelola user, bidang, konfigurasi kantor, dan hari libur.' },
+  { icon: Wallet, title: 'Talangin Dulu 🆕', desc: 'Split bill bareng tim — bagi tagihan makan, transport, atau apapun. Share link ke teman external, notif otomatis ke member internal.' },
 ]
 
 export default function PanduanPage() {
@@ -86,17 +87,20 @@ export default function PanduanPage() {
       {/* Ringkasan Fitur */}
       <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-200 mb-4">Fitur yang Tercakup</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {fitur.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex gap-3 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-              <Icon size={16} className="text-blue-600" />
+        {fitur.map(({ icon: Icon, title, desc }) => {
+          const isNew = title.includes('🆕')
+          return (
+            <div key={title} className={`flex gap-3 p-4 rounded-xl border bg-white dark:bg-zinc-900 ${isNew ? 'border-blue-500/40 dark:border-blue-500/30 ring-1 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-800'}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isNew ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-blue-50 dark:bg-blue-900/30'}`}>
+                <Icon size={16} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{title}</p>
+                <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{desc}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{title}</p>
-              <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{desc}</p>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Role */}

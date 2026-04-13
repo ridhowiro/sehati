@@ -24,6 +24,7 @@ import {
   BookOpen,
   HelpCircle,
   Settings,
+  Wallet,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -81,7 +82,7 @@ export default function Sidebar() {
 
   const menuItemClass = (href: string) => cn(
     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-    isActive(href)
+    (href === '/' ? pathname === '/' : pathname.startsWith(href))
       ? 'bg-zinc-700 text-white'
       : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
   )
@@ -234,6 +235,19 @@ export default function Sidebar() {
               </div>
             )}
           </div>
+
+          {/* Talangin Dulu - semua user */}
+          <Link href="/talangin" className={menuItemClass('/talangin')}>
+            <Wallet size={18} className="shrink-0" />
+            {!collapsed && (
+              <span className="flex items-center gap-2 w-full">
+                Talangin Dulu
+                <span className="text-[10px] font-semibold bg-emerald-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                  New
+                </span>
+              </span>
+            )}
+          </Link>
 
           {/* Panduan - semua user */}
           <Link href="/panduan" className={menuItemClass('/panduan')}>

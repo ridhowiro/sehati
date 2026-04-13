@@ -11,6 +11,10 @@ type NotifTipe =
   | 'cuti_approved'
   | 'cuti_rejected'
   | 'umum'
+  | 'talangin_added'
+  | 'talangin_paid_claim'
+  | 'talangin_confirmed'
+  | 'talangin_settled'
 
 interface NotifPayload {
   user_id: string

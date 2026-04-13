@@ -14,6 +14,7 @@ const FEATURE_MESSAGES = [
   { text: 'Rekap laporan bulanan tersedia kapan saja', emoji: '📊' },
   { text: 'Cek riwayat absensi & keterlambatanmu', emoji: '🕐' },
   { text: 'Semua kegiatan tercatat rapi di satu tempat', emoji: '✅' },
+  { text: 'Baru! Talangin Dulu — split bill bareng tim, beres tanpa drama', emoji: '💸' },
 ]
 
 function generateCaptcha() {

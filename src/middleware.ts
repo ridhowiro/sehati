@@ -32,6 +32,8 @@ export async function middleware(request: NextRequest) {
 
   const isMaintenancePage = pathname.startsWith('/maintenance')
   const isVerifyPage = pathname.startsWith('/verify')
+  // Public pages: share link talangin (outside dashboard route group)
+  const isPublicTalangin = /^\/talangin\/s\/[^/]+$/.test(pathname)
 
   if (user && pathname.startsWith('/login')) {
     const url = request.nextUrl.clone()
@@ -39,14 +41,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (!user && !isAuthPage && !isMaintenancePage && !isVerifyPage) {
+  if (!user && !isAuthPage && !isMaintenancePage && !isVerifyPage && !isPublicTalangin) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
   // Cek maintenance mode untuk user yang sudah login
-  if (user && !isAuthPage && !isMaintenancePage) {
+  if (user && !isAuthPage && !isMaintenancePage && !isPublicTalangin) {
     const [{ data: setting }, { data: userData }] = await Promise.all([
       supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single(),
       supabase.from('users').select('role').eq('id', user.id).single(),
