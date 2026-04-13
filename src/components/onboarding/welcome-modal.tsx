@@ -57,9 +57,9 @@ const steps = [
   },
     {
     icon: <CircleDollarSign className="text-blue-400" size={32} />,
-    title: 'Fitur Keuangan Pribadi (Coming Soon)',
+    title: 'Fitur Talangin (New)',
     description:
-      'Kelola keuangan pribadimu dengan mudah melalui SEHATI. Catat data dan pantau keuanganmu, dan dapatkan laporan keuangan yang akurat setiap bulannya.',
+      'Sering jajan bareng? bingung split bill? Fitur Talangin hadir untuk memudahkan kamu berbagi biaya dengan teman-teman. Cukup masukkan jumlah, pilih teman yang terlibat, dan biarkan Talangin menghitung siapa yang harus bayar berapa. Praktis untuk semua kebutuhan split bill kamu!😊',
   },
   {
     icon: <span className="text-4xl">🚀</span>,
