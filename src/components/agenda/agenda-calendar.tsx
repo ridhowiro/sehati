@@ -88,7 +88,7 @@ export default function AgendaCalendar({
     const cur = new Date(a.tanggal + 'T00:00:00')
     const endDate = new Date(end + 'T00:00:00')
     while (cur <= endDate) {
-      const key = cur.toISOString().slice(0, 10)
+      const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`
       if (!agendaByDate.has(key)) agendaByDate.set(key, [])
       agendaByDate.get(key)!.push(a)
       cur.setDate(cur.getDate() + 1)
