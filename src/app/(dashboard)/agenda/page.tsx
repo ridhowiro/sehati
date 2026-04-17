@@ -38,7 +38,7 @@ export default async function AgendaPage({
       .lte('tanggal', lastDay),
     supabase
       .from('agenda')
-      .select('id, judul, tanggal, waktu_mulai, waktu_selesai, lokasi, deskripsi, creator_id, users(full_name)')
+      .select('id, judul, tanggal, tanggal_selesai, waktu_mulai, waktu_selesai, lokasi, deskripsi, creator_id, users(full_name)')
       .gte('tanggal', firstDay)
       .lte('tanggal', lastDay)
       .order('tanggal', { ascending: true })

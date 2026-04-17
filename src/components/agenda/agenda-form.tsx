@@ -13,6 +13,7 @@ export default function AgendaForm({ prefilledDate = '', onClose }: Props) {
   const [form, setForm] = useState({
     judul: '',
     tanggal: prefilledDate,
+    tanggal_selesai: '',
     waktu_mulai: '',
     waktu_selesai: '',
     lokasi: '',
@@ -28,11 +29,16 @@ export default function AgendaForm({ prefilledDate = '', onClose }: Props) {
       setError('Judul dan tanggal wajib diisi')
       return
     }
+    if (form.tanggal_selesai && form.tanggal_selesai < form.tanggal) {
+      setError('Tanggal selesai tidak boleh sebelum tanggal mulai')
+      return
+    }
     setLoading(true)
     setError(null)
     const res = await createAgenda({
       judul: form.judul.trim(),
       tanggal: form.tanggal,
+      tanggal_selesai: form.tanggal_selesai || undefined,
       waktu_mulai: form.waktu_mulai || undefined,
       waktu_selesai: form.waktu_selesai || undefined,
       lokasi: form.lokasi.trim() || undefined,
@@ -83,16 +89,30 @@ export default function AgendaForm({ prefilledDate = '', onClose }: Props) {
             </div>
 
             {/* Tanggal */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Tanggal <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.tanggal}
-                onChange={e => setForm(f => ({ ...f, tanggal: e.target.value }))}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Tanggal Mulai <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.tanggal}
+                  onChange={e => setForm(f => ({ ...f, tanggal: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Tanggal Selesai
+                </label>
+                <input
+                  type="date"
+                  value={form.tanggal_selesai}
+                  min={form.tanggal || undefined}
+                  onChange={e => setForm(f => ({ ...f, tanggal_selesai: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                />
+              </div>
             </div>
 
             {/* Waktu */}

@@ -14,6 +14,7 @@ type AgendaItem = {
   id: string
   judul: string
   tanggal: string
+  tanggal_selesai: string | null
   waktu_mulai: string | null
   waktu_selesai: string | null
   lokasi: string | null
@@ -83,8 +84,15 @@ export default function AgendaCalendar({
   }
   const agendaByDate = new Map<string, AgendaItem[]>()
   for (const a of agendaList) {
-    if (!agendaByDate.has(a.tanggal)) agendaByDate.set(a.tanggal, [])
-    agendaByDate.get(a.tanggal)!.push(a)
+    const end = a.tanggal_selesai ?? a.tanggal
+    const cur = new Date(a.tanggal + 'T00:00:00')
+    const endDate = new Date(end + 'T00:00:00')
+    while (cur <= endDate) {
+      const key = cur.toISOString().slice(0, 10)
+      if (!agendaByDate.has(key)) agendaByDate.set(key, [])
+      agendaByDate.get(key)!.push(a)
+      cur.setDate(cur.getDate() + 1)
+    }
   }
   const logSet = new Set([...logDates, ...localLogEntries.map(l => l.tanggal)])
 
@@ -378,6 +386,14 @@ export default function AgendaCalendar({
 
                       {/* Meta */}
                       <div className="space-y-1">
+                        {a.tanggal_selesai && a.tanggal_selesai !== a.tanggal && (
+                          <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                            <CalendarDays size={12} />
+                            {new Date(a.tanggal + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                            {' – '}
+                            {new Date(a.tanggal_selesai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        )}
                         {(a.waktu_mulai || a.waktu_selesai) && (
                           <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                             <Clock size={12} />
@@ -501,9 +517,13 @@ export default function AgendaCalendar({
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm text-zinc-800 dark:text-zinc-200 truncate font-medium">{a.judul}</p>
-                      {a.waktu_mulai && (
+                      {a.tanggal_selesai && a.tanggal_selesai !== a.tanggal ? (
+                        <p className="text-xs text-zinc-400">
+                          s.d. {new Date(a.tanggal_selesai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        </p>
+                      ) : a.waktu_mulai ? (
                         <p className="text-xs text-zinc-400">{formatTime(a.waktu_mulai)}{a.waktu_selesai ? ` – ${formatTime(a.waktu_selesai)}` : ''}</p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </button>

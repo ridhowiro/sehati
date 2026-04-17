@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 export async function createAgenda(data: {
   judul: string
   tanggal: string
+  tanggal_selesai?: string
   waktu_mulai?: string
   waktu_selesai?: string
   lokasi?: string
@@ -19,6 +20,7 @@ export async function createAgenda(data: {
     creator_id: user.id,
     judul: data.judul,
     tanggal: data.tanggal,
+    tanggal_selesai: data.tanggal_selesai || null,
     waktu_mulai: data.waktu_mulai || null,
     waktu_selesai: data.waktu_selesai || null,
     lokasi: data.lokasi || null,
