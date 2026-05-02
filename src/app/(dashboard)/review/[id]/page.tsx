@@ -45,6 +45,14 @@ const supabase = createAdminClient()
     .eq('log_bulanan_id', id)
     .order('urutan', { ascending: true })
 
+  const startOfMonth = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-01`
+  const endOfMonth = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-31`
+  const { data: hariLibur } = await supabase
+    .from('hari_libur')
+    .select('tanggal')
+    .gte('tanggal', startOfMonth)
+    .lte('tanggal', endOfMonth)
+
   return (
     <div className="space-y-6">
       <div>
@@ -61,6 +69,7 @@ const supabase = createAdminClient()
         approvals={approvals || []}
         reviewerRole={role}
         reviewerId={userData?.id}
+        hariLibur={(hariLibur || []).map(h => h.tanggal)}
       />
     </div>
   )
