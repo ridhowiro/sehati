@@ -242,9 +242,6 @@ export default function Sidebar() {
             {!collapsed && (
               <span className="flex items-center gap-2 w-full">
                 Talangin Dulu
-                <span className="text-[10px] font-semibold bg-emerald-500 text-white px-1.5 py-0.5 rounded-full leading-none">
-                  New
-                </span>
               </span>
             )}
           </Link>
