@@ -143,16 +143,59 @@ export default async function LaporanPage({
     return match ? (match.keterangan ?? '') : null
   }
 
-  const rekapList = (targetUsersRaw || []).map((u: any) => ({
-    user_id: u.id,
-    full_name: u.full_name,
-    bidang_nama: u.bidang?.nama || null,
-    absensi: (absensiMap[u.id] || []).map((a: any) => ({
+  // Expand date range dari sebuah ST menjadi array tanggal
+  function expandSTDates(tanggal_mulai: string, tanggal_selesai: string, start: string, end: string): string[] {
+    const dates: string[] = []
+    const cur = new Date(tanggal_mulai < start ? start : tanggal_mulai)
+    const last = new Date(tanggal_selesai > end ? end : tanggal_selesai)
+    while (cur <= last) {
+      dates.push(cur.toISOString().slice(0, 10))
+      cur.setDate(cur.getDate() + 1)
+    }
+    return dates
+  }
+
+  const rekapList = (targetUsersRaw || []).map((u: any) => {
+    const userIzin = izinMap[u.id] || []
+    const existingAbsensi = (absensiMap[u.id] || []).map((a: any) => ({
       ...a,
-      status: getEffectiveStatus(a.tanggal, a.status, izinMap[u.id] || []),
-      has_st: getSTForDate(a.tanggal, izinMap[u.id] || []) !== null,
-    })),
-  }))
+      status: getEffectiveStatus(a.tanggal, a.status, userIzin),
+      has_st: getSTForDate(a.tanggal, userIzin) !== null,
+    }))
+
+    // Buat set tanggal yang sudah ada
+    const existingDates = new Set(existingAbsensi.map((a: any) => a.tanggal))
+
+    // Tambahkan baris virtual untuk tanggal ST yang tidak ada absensinya
+    const stRows: any[] = []
+    for (const izin of userIzin) {
+      if (izin.jenis !== 'surat_tugas' || izin.status !== 'disetujui') continue
+      const dates = expandSTDates(izin.tanggal_mulai, izin.tanggal_selesai, startDate, endDate)
+      for (const tgl of dates) {
+        if (!existingDates.has(tgl)) {
+          stRows.push({
+            tanggal: tgl,
+            status: 'surat_tugas',
+            checkin_time: null,
+            checkout_time: null,
+            is_late: false,
+            menit_terlambat: null,
+            has_st: true,
+          })
+          existingDates.add(tgl)
+        }
+      }
+    }
+
+    const absensi = [...existingAbsensi, ...stRows].sort((a, b) => a.tanggal.localeCompare(b.tanggal))
+
+    return {
+      user_id: u.id,
+      full_name: u.full_name,
+      bidang_nama: u.bidang?.nama || null,
+      absensi,
+    }
+  })
 
   return (
     <div className="space-y-6">
