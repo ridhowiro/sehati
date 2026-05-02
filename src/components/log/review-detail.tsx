@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
 import { updateLogStatus } from '@/app/actions/user'
 
+function hitungHariKerja(tahun: number, bulan: number): number {
+  const daysInMonth = new Date(tahun, bulan, 0).getDate()
+  let count = 0
+  for (let d = 1; d <= daysInMonth; d++) {
+    const day = new Date(tahun, bulan - 1, d).getDay()
+    if (day !== 0 && day !== 6) count++
+  }
+  return count
+}
+
 const nextStatus: Record<string, string> = {
   pic: 'reviewed_pic',
   kepala_sekretariat: 'verified_kasek',
@@ -122,8 +132,24 @@ export default function ReviewDetail({
       )}
 
       <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-4 flex-wrap">
           <p className="text-sm font-medium text-zinc-900 dark:text-white">{entries.length} kegiatan</p>
+          {(() => {
+            const hariKerja = hitungHariKerja(log.tahun, log.bulan)
+            const jumlah = entries.length
+            const selisih = jumlah - hariKerja
+            const warna = selisih >= 0
+              ? 'bg-green-500/10 text-green-400 border-green-500/20'
+              : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+            return (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs border ${warna}`}>
+                {hariKerja} hari kerja
+                {selisih >= 0
+                  ? ` · +${selisih} (memenuhi)`
+                  : ` · ${selisih} (kurang)`}
+              </span>
+            )
+          })()}
         </div>
         <table className="w-full text-sm">
           <thead>
