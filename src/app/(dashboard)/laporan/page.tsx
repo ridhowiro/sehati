@@ -120,7 +120,7 @@ export default async function LaporanPage({
       .select('id, full_name, bidang:bidang!users_bidang_id_fkey(nama)')
       .in('id', targetIds).order('full_name'),
     admin.from('izin_karyawan')
-      .select('user_id, tanggal_mulai, tanggal_selesai, jenis, status, keterangan')
+      .select('user_id, tanggal_mulai, tanggal_selesai, jenis, status, keterangan, gdrive_link')
       .in('user_id', targetIds).neq('status', 'ditolak')
       .lte('tanggal_mulai', endDate).gte('tanggal_selesai', startDate),
     admin.from('hari_libur')
@@ -143,7 +143,7 @@ export default async function LaporanPage({
   }
 
   // Build izin map per user
-  type IzinRow = { tanggal_mulai: string; tanggal_selesai: string; jenis: string; status: string; keterangan?: string }
+  type IzinRow = { tanggal_mulai: string; tanggal_selesai: string; jenis: string; status: string; keterangan?: string; gdrive_link?: string }
   const izinMap: Record<string, IzinRow[]> = {}
   for (const i of izinRes.data || []) {
     if (!izinMap[i.user_id]) izinMap[i.user_id] = []
@@ -164,6 +164,8 @@ export default async function LaporanPage({
       const absen = userAbsensi[tanggal]
       const izin = getIzinForDate(tanggal, userIzin)
 
+      type IzinDetail = { jenis: string; tanggal_mulai: string; tanggal_selesai: string; keterangan?: string; gdrive_link?: string } | null
+
       // Hari libur nasional atau weekend
       if (liburNama || weekend) {
         return {
@@ -176,6 +178,7 @@ export default async function LaporanPage({
           keterangan: liburNama || (weekend ? 'Akhir Pekan' : undefined),
           has_st: false,
           lupa_checkout: false,
+          izin_detail: null as IzinDetail,
         }
       }
 
@@ -187,8 +190,6 @@ export default async function LaporanPage({
         let keterangan: string | undefined
         if (lupaCheckout) {
           keterangan = izin ? 'Lupa check-out · Sudah ada perizinan' : 'Lupa check-out'
-        } else if (hasST) {
-          keterangan = izin?.keterangan || undefined
         }
 
         return {
@@ -201,6 +202,7 @@ export default async function LaporanPage({
           keterangan,
           has_st: hasST,
           lupa_checkout: lupaCheckout && !izin,
+          izin_detail: izin ? { jenis: izin.jenis, tanggal_mulai: izin.tanggal_mulai, tanggal_selesai: izin.tanggal_selesai, keterangan: izin.keterangan, gdrive_link: izin.gdrive_link } as IzinDetail : null,
         }
       }
 
@@ -213,9 +215,10 @@ export default async function LaporanPage({
           checkout_time: null,
           is_late: false,
           menit_terlambat: null,
-          keterangan: izin.keterangan || undefined,
+          keterangan: undefined,
           has_st: izin.jenis === 'surat_tugas',
           lupa_checkout: false,
+          izin_detail: { jenis: izin.jenis, tanggal_mulai: izin.tanggal_mulai, tanggal_selesai: izin.tanggal_selesai, keterangan: izin.keterangan, gdrive_link: izin.gdrive_link } as IzinDetail,
         }
       }
 
@@ -230,6 +233,7 @@ export default async function LaporanPage({
         keterangan: undefined,
         has_st: false,
         lupa_checkout: false,
+        izin_detail: null as IzinDetail,
       }
     })
 
