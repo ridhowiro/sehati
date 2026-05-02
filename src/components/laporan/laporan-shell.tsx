@@ -386,11 +386,8 @@ export default function LaporanShell({ availablePeriods, activePeriod, userOptio
                                 </span>
                               )}
 
-                              {/* Keterangan lupa checkout + ada izin */}
+                              {/* Keterangan tambahan (hanya jika bukan sekadar duplikat badge lupa_checkout) */}
                               {a.keterangan && !a.lupa_checkout && (
-                                <span className="text-xs text-zinc-400 dark:text-zinc-500">{a.keterangan}</span>
-                              )}
-                              {a.keterangan && a.lupa_checkout && (
                                 <span className="text-xs text-zinc-400 dark:text-zinc-500">{a.keterangan}</span>
                               )}
                             </div>
