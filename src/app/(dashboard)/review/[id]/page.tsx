@@ -45,13 +45,15 @@ const supabase = createAdminClient()
     .eq('log_bulanan_id', id)
     .order('urutan', { ascending: true })
 
+  const nextMonth = log.bulan === 12 ? 1 : log.bulan + 1
+  const nextYear = log.bulan === 12 ? log.tahun + 1 : log.tahun
   const startOfMonth = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-01`
-  const endOfMonth = `${log.tahun}-${String(log.bulan).padStart(2, '0')}-31`
+  const startOfNextMonth = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`
   const { data: hariLibur } = await supabase
     .from('hari_libur')
     .select('tanggal')
     .gte('tanggal', startOfMonth)
-    .lte('tanggal', endOfMonth)
+    .lt('tanggal', startOfNextMonth)
 
   return (
     <div className="space-y-6">
