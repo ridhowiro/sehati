@@ -29,7 +29,7 @@ function fmtTgl(d: string) {
 
 interface Period { bulan: number; tahun: number; label: string }
 interface UserOpt { id: string; full_name: string; bidang_nama: string | null }
-interface AbsensiRow { tanggal: string; status: string; checkin_time: string | null; checkout_time: string | null; is_late: boolean; menit_terlambat: number | null }
+interface AbsensiRow { tanggal: string; status: string; checkin_time: string | null; checkout_time: string | null; is_late: boolean; menit_terlambat: number | null; has_st?: boolean }
 interface Rekap { user_id: string; full_name: string; bidang_nama: string | null; absensi: AbsensiRow[] }
 
 interface Props {
@@ -228,9 +228,16 @@ export default function LaporanShell({ availablePeriods, activePeriod, userOptio
                     <tr key={a.tanggal} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                       <td className="px-4 py-2.5 text-zinc-700 dark:text-zinc-300">{fmtTgl(a.tanggal)}</td>
                       <td className="px-4 py-2.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColor[a.status] ?? statusColor.tidak_hadir}`}>
-                          {statusLabel[a.status] || a.status}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColor[a.status] ?? statusColor.tidak_hadir}`}>
+                            {statusLabel[a.status] || a.status}
+                          </span>
+                          {a.has_st && a.status !== 'surat_tugas' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full border text-purple-600 bg-purple-50 border-purple-200 dark:text-purple-400 dark:bg-purple-500/10 dark:border-purple-500/20">
+                              ST
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400">{fmt(a.checkin_time)}</td>
                       <td className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400">{fmt(a.checkout_time)}</td>

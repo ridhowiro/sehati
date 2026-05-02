@@ -112,7 +112,7 @@ export default async function LaporanPage({
   // 8. Fetch izin yang dikonfirmasi untuk periode ini
   const { data: izinData } = await admin
     .from('izin_karyawan')
-    .select('user_id, tanggal_mulai, tanggal_selesai, jenis, status')
+    .select('user_id, tanggal_mulai, tanggal_selesai, jenis, status, keterangan')
     .in('user_id', targetIds)
     .neq('status', 'ditolak')
     .lte('tanggal_mulai', endDate)
@@ -125,7 +125,7 @@ export default async function LaporanPage({
     absensiMap[a.user_id].push(a)
   }
 
-  const izinMap: Record<string, { tanggal_mulai: string; tanggal_selesai: string; jenis: string; status: string }[]> = {}
+  const izinMap: Record<string, { tanggal_mulai: string; tanggal_selesai: string; jenis: string; status: string; keterangan?: string }[]> = {}
   for (const i of izinData || []) {
     if (!izinMap[i.user_id]) izinMap[i.user_id] = []
     izinMap[i.user_id].push(i)
@@ -138,6 +138,11 @@ export default async function LaporanPage({
     return match ? match.jenis : status
   }
 
+  function getSTForDate(tanggal: string, userIzin: typeof izinMap[string]): string | null {
+    const match = userIzin?.find(i => i.jenis === 'surat_tugas' && i.status === 'disetujui' && i.tanggal_mulai <= tanggal && i.tanggal_selesai >= tanggal)
+    return match ? (match.keterangan ?? '') : null
+  }
+
   const rekapList = (targetUsersRaw || []).map((u: any) => ({
     user_id: u.id,
     full_name: u.full_name,
@@ -145,6 +150,7 @@ export default async function LaporanPage({
     absensi: (absensiMap[u.id] || []).map((a: any) => ({
       ...a,
       status: getEffectiveStatus(a.tanggal, a.status, izinMap[u.id] || []),
+      has_st: getSTForDate(a.tanggal, izinMap[u.id] || []) !== null,
     })),
   }))
 
