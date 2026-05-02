@@ -5,12 +5,64 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
 import { updateLogStatus } from '@/app/actions/user'
 
+// Libur nasional & cuti bersama Indonesia (Senin–Jumat saja yang berpengaruh)
+// Sumber: SKB 3 Menteri. Tanggal berbasis bulan Islam bersifat perkiraan.
+const LIBUR_NASIONAL = new Set([
+  // 2025
+  '2025-01-01', // Tahun Baru Masehi
+  '2025-01-27', // Isra Mi'raj
+  '2025-01-28', // Cuti bersama Isra Mi'raj
+  '2025-01-29', // Tahun Baru Imlek
+  '2025-03-28', // Cuti bersama Nyepi
+  '2025-03-29', // Nyepi (Saka 1947)
+  '2025-03-31', // Idul Fitri 1446 H hari ke-1
+  '2025-04-01', // Idul Fitri 1446 H hari ke-2
+  '2025-04-02', // Cuti bersama Idul Fitri
+  '2025-04-03', // Cuti bersama Idul Fitri
+  '2025-04-04', // Cuti bersama Idul Fitri
+  '2025-04-07', // Cuti bersama Idul Fitri
+  '2025-04-18', // Wafat Isa Al Masih
+  '2025-04-20', // Paskah
+  '2025-05-01', // Hari Buruh
+  '2025-05-12', // Hari Raya Waisak
+  '2025-05-13', // Cuti bersama Waisak
+  '2025-05-29', // Kenaikan Isa Al Masih
+  '2025-06-01', // Hari Lahir Pancasila
+  '2025-06-06', // Idul Adha 1446 H
+  '2025-06-27', // Tahun Baru Islam 1447 H
+  '2025-08-17', // HUT Kemerdekaan RI
+  '2025-09-05', // Maulid Nabi 1447 H
+  '2025-12-25', // Natal
+  '2025-12-26', // Cuti bersama Natal
+
+  // 2026
+  '2026-01-01', // Tahun Baru Masehi
+  '2026-01-17', // Isra Mi'raj 1447 H
+  '2026-02-17', // Tahun Baru Imlek 2577
+  '2026-03-19', // Idul Fitri 1447 H hari ke-1
+  '2026-03-20', // Idul Fitri 1447 H hari ke-2
+  '2026-03-28', // Nyepi (Saka 1948)
+  '2026-04-03', // Wafat Isa Al Masih
+  '2026-05-01', // Hari Buruh
+  '2026-05-14', // Kenaikan Isa Al Masih
+  '2026-05-23', // Hari Raya Waisak
+  '2026-05-27', // Idul Adha 1447 H
+  '2026-06-01', // Hari Lahir Pancasila
+  '2026-06-17', // Tahun Baru Islam 1448 H
+  '2026-08-17', // HUT Kemerdekaan RI
+  '2026-09-26', // Maulid Nabi 1448 H
+  '2026-12-25', // Natal
+])
+
 function hitungHariKerja(tahun: number, bulan: number): number {
   const daysInMonth = new Date(tahun, bulan, 0).getDate()
   let count = 0
   for (let d = 1; d <= daysInMonth; d++) {
-    const day = new Date(tahun, bulan - 1, d).getDay()
-    if (day !== 0 && day !== 6) count++
+    const date = new Date(tahun, bulan - 1, d)
+    const day = date.getDay()
+    if (day === 0 || day === 6) continue
+    const key = `${tahun}-${String(bulan).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    if (!LIBUR_NASIONAL.has(key)) count++
   }
   return count
 }
