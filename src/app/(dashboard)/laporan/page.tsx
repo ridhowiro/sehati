@@ -6,6 +6,34 @@ export const dynamic = 'force-dynamic'
 
 const bulanNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
+// Recompute is_late dari checkin_time vs jam_masuk + toleransi (timezone Jakarta UTC+7)
+function computeIsLate(
+  checkin_time: string | null,
+  jam_masuk: string,
+  toleransi_menit: number,
+): { is_late: boolean; menit_terlambat: number } {
+  if (!checkin_time) return { is_late: false, menit_terlambat: 0 }
+  const dt = new Date(checkin_time)
+  const jakartaMinutes = (dt.getUTCHours() * 60 + dt.getUTCMinutes() + 7 * 60) % (24 * 60)
+  const [jh, jm] = jam_masuk.split(':').map(Number)
+  const thresholdMinutes = jh * 60 + jm + toleransi_menit
+  const is_late = jakartaMinutes > thresholdMinutes
+  return { is_late, menit_terlambat: is_late ? jakartaMinutes - (jh * 60 + jm) : 0 }
+}
+
+function isWeekend(tanggal: string): boolean {
+  const day = new Date(tanggal + 'T00:00:00').getDay()
+  return day === 0 || day === 6
+}
+
+function generateMonthDates(tahun: number, bulan: number): string[] {
+  const lastDay = new Date(tahun, bulan, 0).getDate()
+  const mm = String(bulan).padStart(2, '0')
+  return Array.from({ length: lastDay }, (_, i) =>
+    `${tahun}-${mm}-${String(i + 1).padStart(2, '0')}`
+  )
+}
+
 export default async function LaporanPage({
   searchParams,
 }: {
@@ -15,7 +43,7 @@ export default async function LaporanPage({
   const admin = createAdminClient()
   const sp = await searchParams
 
-  // 1. Ambil semua user IDs yang boleh diakses
+  // 1. Allowed user IDs
   let allowedIds: string[] = []
   if (role === 'karyawan') {
     allowedIds = [user.id]
@@ -31,18 +59,15 @@ export default async function LaporanPage({
     return <div className="p-8 text-zinc-400 text-sm">Tidak ada data yang bisa diakses.</div>
   }
 
-  // 2. Ambil periode tersedia dari absensi
-  const { data: allAbsensi, error: absensiError } = await admin
-    .from('absensi')
-    .select('tanggal')
-    .in('user_id', allowedIds)
+  // 2. Periode tersedia
+  const { data: allAbsensi } = await admin
+    .from('absensi').select('tanggal').in('user_id', allowedIds)
 
   const rows = Array.isArray(allAbsensi) ? allAbsensi : []
   const periodeMap = new Map<string, { bulan: number; tahun: number; label: string }>()
   for (const row of rows) {
     const parts = String(row.tanggal).split('-')
-    const t = parseInt(parts[0])
-    const b = parseInt(parts[1])
+    const t = parseInt(parts[0]), b = parseInt(parts[1])
     const key = `${t}-${b}`
     if (!periodeMap.has(key)) periodeMap.set(key, { bulan: b, tahun: t, label: `${bulanNames[b]} ${t}` })
   }
@@ -67,134 +92,148 @@ export default async function LaporanPage({
   const startDate = `${activePeriod.tahun}-${String(activePeriod.bulan).padStart(2, '0')}-01`
   const lastDay = new Date(activePeriod.tahun, activePeriod.bulan, 0).getDate()
   const endDate = `${activePeriod.tahun}-${String(activePeriod.bulan).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  const allDates = generateMonthDates(activePeriod.tahun, activePeriod.bulan)
 
   // 4. User yang punya absensi di periode ini
   const { data: absensiPeriode } = await admin
-    .from('absensi')
-    .select('user_id')
-    .in('user_id', allowedIds)
-    .gte('tanggal', startDate)
-    .lte('tanggal', endDate)
+    .from('absensi').select('user_id').in('user_id', allowedIds)
+    .gte('tanggal', startDate).lte('tanggal', endDate)
 
   const userIdsWithData = [...new Set((absensiPeriode || []).map((r: any) => r.user_id))]
   const { data: usersRaw } = await admin
-    .from('users')
-    .select('id, full_name, bidang:bidang!users_bidang_id_fkey(nama)')
-    .in('id', userIdsWithData)
-    .order('full_name')
+    .from('users').select('id, full_name, bidang:bidang!users_bidang_id_fkey(nama)')
+    .in('id', userIdsWithData).order('full_name')
 
   const userOptions = (usersRaw || []).map((u: any) => ({
-    id: u.id,
-    full_name: u.full_name,
-    bidang_nama: u.bidang?.nama || null,
+    id: u.id, full_name: u.full_name, bidang_nama: u.bidang?.nama || null,
   }))
 
-  // 5. Filter user aktif
   const activeUid = sp.uid && userIdsWithData.includes(sp.uid) ? sp.uid : null
   const targetIds = activeUid ? [activeUid] : userIdsWithData
 
-  // 6. Fetch absensi untuk target user
-  const { data: absensiData } = await admin
-    .from('absensi')
-    .select('user_id, tanggal, status, checkin_time, checkout_time, is_late, menit_terlambat')
-    .in('user_id', targetIds)
-    .gte('tanggal', startDate)
-    .lte('tanggal', endDate)
-    .order('tanggal')
+  // 5. Fetch semua data sekaligus
+  const [absensiRes, targetUsersRes, izinRes, hariLiburRes, kantorConfigRes] = await Promise.all([
+    admin.from('absensi')
+      .select('user_id, tanggal, status, checkin_time, checkout_time, is_late, menit_terlambat')
+      .in('user_id', targetIds).gte('tanggal', startDate).lte('tanggal', endDate).order('tanggal'),
+    admin.from('users')
+      .select('id, full_name, bidang:bidang!users_bidang_id_fkey(nama)')
+      .in('id', targetIds).order('full_name'),
+    admin.from('izin_karyawan')
+      .select('user_id, tanggal_mulai, tanggal_selesai, jenis, status, keterangan')
+      .in('user_id', targetIds).neq('status', 'ditolak')
+      .lte('tanggal_mulai', endDate).gte('tanggal_selesai', startDate),
+    admin.from('hari_libur')
+      .select('tanggal, nama').gte('tanggal', startDate).lte('tanggal', endDate),
+    admin.from('kantor_config').select('jam_masuk, toleransi_menit').eq('is_active', true).limit(1).maybeSingle(),
+  ])
 
-  // 7. Fetch detail user
-  const { data: targetUsersRaw } = await admin
-    .from('users')
-    .select('id, full_name, bidang:bidang!users_bidang_id_fkey(nama)')
-    .in('id', targetIds)
-    .order('full_name')
+  const jam_masuk: string = kantorConfigRes.data?.jam_masuk ?? '07:30:00'
+  const toleransi_menit: number = kantorConfigRes.data?.toleransi_menit ?? 30
 
-  // 8. Fetch izin yang dikonfirmasi untuk periode ini
-  const { data: izinData } = await admin
-    .from('izin_karyawan')
-    .select('user_id, tanggal_mulai, tanggal_selesai, jenis, status, keterangan')
-    .in('user_id', targetIds)
-    .neq('status', 'ditolak')
-    .lte('tanggal_mulai', endDate)
-    .gte('tanggal_selesai', startDate)
+  // Build hari libur set
+  const hariLiburMap = new Map<string, string>()
+  for (const h of hariLiburRes.data || []) hariLiburMap.set(h.tanggal, h.nama)
 
-  // Build maps
-  const absensiMap: Record<string, any[]> = {}
-  for (const a of absensiData || []) {
-    if (!absensiMap[a.user_id]) absensiMap[a.user_id] = []
-    absensiMap[a.user_id].push(a)
+  // Build absensi map per user
+  const absensiMap: Record<string, Record<string, any>> = {}
+  for (const a of absensiRes.data || []) {
+    if (!absensiMap[a.user_id]) absensiMap[a.user_id] = {}
+    absensiMap[a.user_id][a.tanggal] = a
   }
 
-  const izinMap: Record<string, { tanggal_mulai: string; tanggal_selesai: string; jenis: string; status: string; keterangan?: string }[]> = {}
-  for (const i of izinData || []) {
+  // Build izin map per user
+  type IzinRow = { tanggal_mulai: string; tanggal_selesai: string; jenis: string; status: string; keterangan?: string }
+  const izinMap: Record<string, IzinRow[]> = {}
+  for (const i of izinRes.data || []) {
     if (!izinMap[i.user_id]) izinMap[i.user_id] = []
     izinMap[i.user_id].push(i)
   }
 
-  // Override status absensi dengan izin yang relevan
-  function getEffectiveStatus(tanggal: string, status: string, userIzin: typeof izinMap[string]): string {
-    if (status !== 'tidak_hadir') return status
-    const match = userIzin?.find(i => i.tanggal_mulai <= tanggal && i.tanggal_selesai >= tanggal)
-    return match ? match.jenis : status
+  function getIzinForDate(tanggal: string, userIzin: IzinRow[]): IzinRow | null {
+    return userIzin.find(i => i.status === 'disetujui' && i.tanggal_mulai <= tanggal && i.tanggal_selesai >= tanggal) ?? null
   }
 
-  function getSTForDate(tanggal: string, userIzin: typeof izinMap[string]): string | null {
-    const match = userIzin?.find(i => i.jenis === 'surat_tugas' && i.status === 'disetujui' && i.tanggal_mulai <= tanggal && i.tanggal_selesai >= tanggal)
-    return match ? (match.keterangan ?? '') : null
-  }
-
-  // Expand date range dari sebuah ST menjadi array tanggal
-  function expandSTDates(tanggal_mulai: string, tanggal_selesai: string, start: string, end: string): string[] {
-    const dates: string[] = []
-    const cur = new Date(tanggal_mulai < start ? start : tanggal_mulai)
-    const last = new Date(tanggal_selesai > end ? end : tanggal_selesai)
-    while (cur <= last) {
-      dates.push(cur.toISOString().slice(0, 10))
-      cur.setDate(cur.getDate() + 1)
-    }
-    return dates
-  }
-
-  const rekapList = (targetUsersRaw || []).map((u: any) => {
+  const rekapList = (targetUsersRes.data || []).map((u: any) => {
     const userIzin = izinMap[u.id] || []
-    const existingAbsensi = (absensiMap[u.id] || []).map((a: any) => ({
-      ...a,
-      status: getEffectiveStatus(a.tanggal, a.status, userIzin),
-      has_st: getSTForDate(a.tanggal, userIzin) !== null,
-    }))
+    const userAbsensi = absensiMap[u.id] || {}
 
-    // Buat set tanggal yang sudah ada
-    const existingDates = new Set(existingAbsensi.map((a: any) => a.tanggal))
+    const absensi = allDates.map(tanggal => {
+      const liburNama = hariLiburMap.get(tanggal)
+      const weekend = isWeekend(tanggal)
+      const absen = userAbsensi[tanggal]
+      const izin = getIzinForDate(tanggal, userIzin)
 
-    // Tambahkan baris virtual untuk tanggal ST yang tidak ada absensinya
-    const stRows: any[] = []
-    for (const izin of userIzin) {
-      if (izin.jenis !== 'surat_tugas' || izin.status !== 'disetujui') continue
-      const dates = expandSTDates(izin.tanggal_mulai, izin.tanggal_selesai, startDate, endDate)
-      for (const tgl of dates) {
-        if (!existingDates.has(tgl)) {
-          stRows.push({
-            tanggal: tgl,
-            status: 'surat_tugas',
-            checkin_time: null,
-            checkout_time: null,
-            is_late: false,
-            menit_terlambat: null,
-            has_st: true,
-          })
-          existingDates.add(tgl)
+      // Hari libur nasional atau weekend
+      if (liburNama || weekend) {
+        return {
+          tanggal,
+          status: 'libur' as string,
+          checkin_time: null as string | null,
+          checkout_time: null as string | null,
+          is_late: false,
+          menit_terlambat: null as number | null,
+          keterangan: liburNama || (weekend ? 'Akhir Pekan' : undefined),
+          has_st: false,
+          lupa_checkout: false,
         }
       }
-    }
 
-    const absensi = [...existingAbsensi, ...stRows].sort((a, b) => a.tanggal.localeCompare(b.tanggal))
+      // Ada record absensi
+      if (absen) {
+        const { is_late, menit_terlambat } = computeIsLate(absen.checkin_time, jam_masuk, toleransi_menit)
+        const lupaCheckout = !!absen.checkin_time && !absen.checkout_time
+        const hasST = !!(izin && izin.jenis === 'surat_tugas')
+        let keterangan: string | undefined
+        if (lupaCheckout) {
+          keterangan = izin ? 'Lupa check-out · Sudah ada perizinan' : 'Lupa check-out'
+        } else if (hasST) {
+          keterangan = izin?.keterangan || undefined
+        }
 
-    return {
-      user_id: u.id,
-      full_name: u.full_name,
-      bidang_nama: u.bidang?.nama || null,
-      absensi,
-    }
+        return {
+          tanggal,
+          status: absen.status as string,
+          checkin_time: absen.checkin_time,
+          checkout_time: absen.checkout_time,
+          is_late,
+          menit_terlambat,
+          keterangan,
+          has_st: hasST,
+          lupa_checkout: lupaCheckout && !izin,
+        }
+      }
+
+      // Tidak ada absensi — cek izin
+      if (izin) {
+        return {
+          tanggal,
+          status: izin.jenis as string,
+          checkin_time: null,
+          checkout_time: null,
+          is_late: false,
+          menit_terlambat: null,
+          keterangan: izin.keterangan || undefined,
+          has_st: izin.jenis === 'surat_tugas',
+          lupa_checkout: false,
+        }
+      }
+
+      // Tidak hadir
+      return {
+        tanggal,
+        status: 'tidak_hadir' as string,
+        checkin_time: null,
+        checkout_time: null,
+        is_late: false,
+        menit_terlambat: null,
+        keterangan: undefined,
+        has_st: false,
+        lupa_checkout: false,
+      }
+    })
+
+    return { user_id: u.id, full_name: u.full_name, bidang_nama: u.bidang?.nama || null, absensi }
   })
 
   return (

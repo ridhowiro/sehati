@@ -6,17 +6,19 @@ import { FileDown, Sheet } from 'lucide-react'
 
 const statusLabel: Record<string, string> = {
   hadir: 'Hadir', wfh: 'WFH', terlambat: 'Terlambat',
-  tidak_hadir: 'Tidak Hadir', izin: 'Izin', sakit: 'Sakit', cuti: 'Cuti', surat_tugas: 'Surat Tugas',
+  tidak_hadir: 'Tidak Hadir', izin: 'Izin', sakit: 'Sakit', cuti: 'Cuti',
+  surat_tugas: 'Surat Tugas', libur: 'Libur',
 }
 const statusColor: Record<string, string> = {
   hadir:        'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/20',
   wfh:          'text-blue-600 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-500/10 dark:border-blue-500/20',
   terlambat:    'text-yellow-600 bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-500/10 dark:border-yellow-500/20',
-  tidak_hadir:  'text-zinc-500 bg-zinc-50 border-zinc-200 dark:text-zinc-400 dark:bg-zinc-500/10 dark:border-zinc-500/20',
+  tidak_hadir:  'text-red-500 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20',
   izin:         'text-orange-600 bg-orange-50 border-orange-200 dark:text-orange-400 dark:bg-orange-500/10 dark:border-orange-500/20',
   cuti:         'text-blue-500 bg-blue-50 border-blue-200 dark:text-blue-300 dark:bg-blue-400/10 dark:border-blue-400/20',
-  sakit:        'text-red-500 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20',
+  sakit:        'text-pink-600 bg-pink-50 border-pink-200 dark:text-pink-400 dark:bg-pink-500/10 dark:border-pink-500/20',
   surat_tugas:  'text-purple-600 bg-purple-50 border-purple-200 dark:text-purple-400 dark:bg-purple-500/10 dark:border-purple-500/20',
+  libur:        'text-zinc-400 bg-zinc-50 border-zinc-200 dark:text-zinc-500 dark:bg-zinc-800/50 dark:border-zinc-700',
 }
 
 function fmt(iso: string | null) {
@@ -29,7 +31,7 @@ function fmtTgl(d: string) {
 
 interface Period { bulan: number; tahun: number; label: string }
 interface UserOpt { id: string; full_name: string; bidang_nama: string | null }
-interface AbsensiRow { tanggal: string; status: string; checkin_time: string | null; checkout_time: string | null; is_late: boolean; menit_terlambat: number | null; has_st?: boolean }
+interface AbsensiRow { tanggal: string; status: string; checkin_time: string | null; checkout_time: string | null; is_late: boolean; menit_terlambat: number | null; has_st?: boolean; lupa_checkout?: boolean; keterangan?: string }
 interface Rekap { user_id: string; full_name: string; bidang_nama: string | null; absensi: AbsensiRow[] }
 
 interface Props {
@@ -190,6 +192,8 @@ export default function LaporanShell({ availablePeriods, activePeriod, userOptio
         const wfh = rekap.absensi.filter(a => a.status === 'wfh').length
         const tidakHadir = rekap.absensi.filter(a => a.status === 'tidak_hadir').length
         const terlambat = rekap.absensi.filter(a => a.is_late).length
+        const suratTugas = rekap.absensi.filter(a => a.status === 'surat_tugas').length
+        const izinCutiSakit = rekap.absensi.filter(a => ['izin','cuti','sakit'].includes(a.status)).length
 
         return (
           <div key={rekap.user_id} className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
@@ -198,10 +202,12 @@ export default function LaporanShell({ availablePeriods, activePeriod, userOptio
               {rekap.bidang_nama && <p className="text-xs text-zinc-500 mt-0.5">{rekap.bidang_nama}</p>}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-px bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-800">
               {[
                 { label: 'Hadir / WFO', value: hadir, unit: 'hari' },
                 { label: 'WFH', value: wfh, unit: 'hari' },
+                { label: 'Surat Tugas', value: suratTugas, unit: 'hari' },
+                { label: 'Izin / Cuti / Sakit', value: izinCutiSakit, unit: 'hari' },
                 { label: 'Tidak Hadir', value: tidakHadir, unit: 'hari' },
                 { label: 'Terlambat', value: terlambat, unit: 'kali' },
               ].map(s => (
@@ -225,17 +231,27 @@ export default function LaporanShell({ availablePeriods, activePeriod, userOptio
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {rekap.absensi.map(a => (
-                    <tr key={a.tanggal} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
+                    <tr key={a.tanggal} className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/30 ${a.status === 'libur' ? 'opacity-40' : ''}`}>
                       <td className="px-4 py-2.5 text-zinc-700 dark:text-zinc-300">{fmtTgl(a.tanggal)}</td>
                       <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColor[a.status] ?? statusColor.tidak_hadir}`}>
-                            {statusLabel[a.status] || a.status}
-                          </span>
-                          {a.has_st && a.status !== 'surat_tugas' && (
-                            <span className="text-xs px-2 py-0.5 rounded-full border text-purple-600 bg-purple-50 border-purple-200 dark:text-purple-400 dark:bg-purple-500/10 dark:border-purple-500/20">
-                              ST
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColor[a.status] ?? statusColor.tidak_hadir}`}>
+                              {statusLabel[a.status] || a.status}
                             </span>
+                            {a.has_st && a.status !== 'surat_tugas' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full border text-purple-600 bg-purple-50 border-purple-200 dark:text-purple-400 dark:bg-purple-500/10 dark:border-purple-500/20">
+                                ST
+                              </span>
+                            )}
+                            {a.lupa_checkout && (
+                              <span className="text-xs px-2 py-0.5 rounded-full border text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20">
+                                Lupa check-out
+                              </span>
+                            )}
+                          </div>
+                          {a.keterangan && (
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500 pl-0.5">{a.keterangan}</span>
                           )}
                         </div>
                       </td>
