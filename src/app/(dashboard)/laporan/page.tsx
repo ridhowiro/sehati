@@ -43,15 +43,16 @@ export default async function LaporanPage({
   const admin = createAdminClient()
   const sp = await searchParams
 
-  // 1. Allowed user IDs
+  // 1. Allowed user IDs — hanya karyawan aktif
   let allowedIds: string[] = []
   if (role === 'karyawan') {
     allowedIds = [user.id]
   } else if (role === 'pic') {
-    const { data } = await admin.from('users').select('id').eq('bidang_id', userData?.bidang_id ?? '')
+    const { data } = await admin.from('users').select('id')
+      .eq('bidang_id', userData?.bidang_id ?? '').eq('role', 'karyawan').eq('is_active', true)
     allowedIds = (data || []).map((u: any) => u.id)
   } else {
-    const { data } = await admin.from('users').select('id')
+    const { data } = await admin.from('users').select('id').eq('role', 'karyawan').eq('is_active', true)
     allowedIds = (data || []).map((u: any) => u.id)
   }
 
