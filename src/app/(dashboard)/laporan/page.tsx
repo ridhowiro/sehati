@@ -94,31 +94,23 @@ export default async function LaporanPage({
   const endDate = `${activePeriod.tahun}-${String(activePeriod.bulan).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
   const allDates = generateMonthDates(activePeriod.tahun, activePeriod.bulan)
 
-  // 4. User yang punya absensi di periode ini
-  const { data: absensiPeriode } = await admin
-    .from('absensi').select('user_id').in('user_id', allowedIds)
-    .gte('tanggal', startDate).lte('tanggal', endDate)
-
-  const userIdsWithData = [...new Set((absensiPeriode || []).map((r: any) => r.user_id))]
+  // 4. Semua user yang diizinkan (termasuk yang belum ada absensinya)
   const { data: usersRaw } = await admin
     .from('users').select('id, full_name, bidang:bidang!users_bidang_id_fkey(nama)')
-    .in('id', userIdsWithData).order('full_name')
+    .in('id', allowedIds).order('full_name')
 
   const userOptions = (usersRaw || []).map((u: any) => ({
     id: u.id, full_name: u.full_name, bidang_nama: u.bidang?.nama || null,
   }))
 
-  const activeUid = sp.uid && userIdsWithData.includes(sp.uid) ? sp.uid : null
-  const targetIds = activeUid ? [activeUid] : userIdsWithData
+  const activeUid = sp.uid && allowedIds.includes(sp.uid) ? sp.uid : null
+  const targetIds = activeUid ? [activeUid] : allowedIds
 
   // 5. Fetch semua data sekaligus
-  const [absensiRes, targetUsersRes, izinRes, hariLiburRes, kantorConfigRes] = await Promise.all([
+  const [absensiRes, izinRes, hariLiburRes, kantorConfigRes] = await Promise.all([
     admin.from('absensi')
       .select('user_id, tanggal, status, checkin_time, checkout_time, is_late, menit_terlambat')
       .in('user_id', targetIds).gte('tanggal', startDate).lte('tanggal', endDate).order('tanggal'),
-    admin.from('users')
-      .select('id, full_name, bidang:bidang!users_bidang_id_fkey(nama)')
-      .in('id', targetIds).order('full_name'),
     admin.from('izin_karyawan')
       .select('user_id, tanggal_mulai, tanggal_selesai, jenis, status, keterangan, gdrive_link')
       .in('user_id', targetIds).neq('status', 'ditolak')
@@ -154,7 +146,7 @@ export default async function LaporanPage({
     return userIzin.find(i => i.status === 'disetujui' && i.tanggal_mulai <= tanggal && i.tanggal_selesai >= tanggal) ?? null
   }
 
-  const rekapList = (targetUsersRes.data || []).map((u: any) => {
+  const rekapList = (usersRaw || []).filter((u: any) => targetIds.includes(u.id)).map((u: any) => {
     const userIzin = izinMap[u.id] || []
     const userAbsensi = absensiMap[u.id] || {}
 
