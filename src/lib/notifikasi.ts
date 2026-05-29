@@ -11,6 +11,7 @@ type NotifTipe =
   | 'cuti_approved'
   | 'cuti_rejected'
   | 'umum'
+  | 'pengumuman'
   | 'talangin_added'
   | 'talangin_paid_claim'
   | 'talangin_confirmed'

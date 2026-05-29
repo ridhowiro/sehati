@@ -25,6 +25,7 @@ import {
   HelpCircle,
   Settings,
   Wallet,
+  Megaphone,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -95,6 +96,7 @@ export default function Sidebar() {
   const isKaryawan = role === 'karyawan'
   const canReview = role && ['admin', 'kasubdit', 'kepala_sekretariat', 'pic'].includes(role)
   const isAdmin = role === 'admin'
+  const canAnnounce = role === 'admin' || role === 'kepala_sekretariat'
 
   const aktivitasActive = pathname.startsWith('/review')
   const kepegawaianActive = pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan')
@@ -245,6 +247,14 @@ export default function Sidebar() {
               </span>
             )}
           </Link>
+
+          {/* Pengumuman - admin & kasek */}
+          {canAnnounce && (
+            <Link href="/pengumuman" className={menuItemClass('/pengumuman')}>
+              <Megaphone size={18} className="shrink-0" />
+              {!collapsed && <span>Pengumuman</span>}
+            </Link>
+          )}
 
           {/* Panduan - semua user */}
           <Link href="/panduan" className={menuItemClass('/panduan')}>

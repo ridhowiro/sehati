@@ -5,6 +5,18 @@ import { revalidatePath } from 'next/cache'
 import { createNotifikasi, getUsersByRole } from '@/lib/notifikasi'
 import { requireRole } from '@/lib/get-user-role'
 
+const EXCLUSIVE_ROLES = ['pic', 'kasubdit', 'kepala_sekretariat']
+
+async function checkExclusiveRole(supabase: ReturnType<typeof createAdminClient>, role: string, excludeUserId?: string) {
+  if (!EXCLUSIVE_ROLES.includes(role)) return null
+  const query = supabase.from('users').select('id, full_name').eq('role', role).eq('is_active', true)
+  const { data } = excludeUserId ? await query.neq('id', excludeUserId) : await query
+  if (data && data.length > 0) {
+    return `Role ini sudah dipegang oleh ${data[0].full_name}. Ubah role mereka terlebih dahulu.`
+  }
+  return null
+}
+
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -20,6 +32,9 @@ export async function createUser(formData: {
 }) {
   await requireRole(['admin'])
   const supabase = createAdminClient()
+
+  const exclusiveError = await checkExclusiveRole(supabase, formData.role)
+  if (exclusiveError) return { error: exclusiveError }
 
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
     email: formData.email,
@@ -53,6 +68,27 @@ export async function createUser(formData: {
       })
   }
 
+  revalidatePath('/admin/users')
+  return { success: true }
+}
+
+export async function updateUser(userId: string, data: { role: string, bidang_id: string, is_active: boolean }) {
+  await requireRole(['admin'])
+  const supabase = createAdminClient()
+
+  const exclusiveError = await checkExclusiveRole(supabase, data.role, userId)
+  if (exclusiveError) return { error: exclusiveError }
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      role: data.role as any,
+      bidang_id: data.bidang_id || null,
+      is_active: data.is_active,
+    })
+    .eq('id', userId)
+
+  if (error) return { error: error.message }
   revalidatePath('/admin/users')
   return { success: true }
 }

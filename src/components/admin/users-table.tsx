@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { createUser, resetPassword } from '@/app/actions/user'
+import { createUser, resetPassword, updateUser } from '@/app/actions/user'
 import { Pencil, X, Check, Plus, KeyRound, Copy, RefreshCw } from 'lucide-react'
 
 type UserRole = 'admin' | 'kasubdit' | 'kepala_sekretariat' | 'pic' | 'karyawan'
@@ -87,7 +86,6 @@ const [inviteForm, setInviteForm] = useState({
   tanggal_lahir: '',
 })
 const [inviteLoading, setInviteLoading] = useState(false)
-  const supabase = createClient()
 
 const handleInvite = async () => {
   if (!inviteForm.email || !inviteForm.password || !inviteForm.full_name) {
@@ -129,17 +127,10 @@ const handleInvite = async () => {
     setLoading(true)
     setMessage('')
 
-    const { error } = await supabase
-      .from('users')
-      .update({
-        role: editForm.role,
-        bidang_id: editForm.bidang_id || null,
-        is_active: editForm.is_active,
-      })
-      .eq('id', userId)
+    const result = await updateUser(userId, editForm)
 
-    if (error) {
-      setMessage('Gagal menyimpan perubahan.')
+    if (result.error) {
+      setMessage('Gagal: ' + result.error)
     } else {
       setData(data.map(u => u.id === userId ? {
         ...u,

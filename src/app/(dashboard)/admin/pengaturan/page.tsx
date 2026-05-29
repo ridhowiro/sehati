@@ -1,6 +1,7 @@
 import { requireRole } from '@/lib/get-user-role'
 import { getMaintenanceMode } from '@/app/actions/app-settings'
 import MaintenanceToggle from '@/components/admin/maintenance-toggle'
+import AnnouncementForm from '@/components/admin/announcement-form'
 
 export default async function AdminPengaturanPage() {
   await requireRole(['admin'])
@@ -13,6 +14,7 @@ export default async function AdminPengaturanPage() {
         <p className="text-sm text-zinc-500 mt-1">Konfigurasi umum aplikasi SEHATI</p>
       </div>
       <MaintenanceToggle initialValue={maintenanceMode} />
+      <AnnouncementForm />
     </div>
   )
 }

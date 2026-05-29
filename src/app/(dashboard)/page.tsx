@@ -5,6 +5,7 @@ import { Users, FileText, CheckCircle, Clock } from 'lucide-react'
 import CheckinCard from '@/components/absensi/checkin-card'
 import BirthdayCard from '@/components/dashboard/birthday-card'
 import BirthdayPopup from '@/components/dashboard/birthday-popup'
+import AnnouncementBanner from '@/components/dashboard/announcement-banner'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -29,15 +30,14 @@ export default async function HomePage() {
   const now = new Date()
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
-
-  const todayMMDD = todayWib.slice(5) // MM-DD
+  const todayDay = parseInt(todayWib.slice(8))
 
   const [
     { data: kantor },
     { data: absensiHariIni },
     { data: allUsers },
     { data: logsThisMonth },
-    { data: birthdayUsers },
+    { data: allBirthdayProfiles },
   ] = await Promise.all([
     supabase.from('kantor_config').select('*').eq('is_active', true).maybeSingle(),
     supabase
@@ -60,12 +60,17 @@ export default async function HomePage() {
     adminSupabase
       .from('pegawai_profil')
       .select('user_id, tanggal_lahir, users!inner(full_name, is_active, avatar_url)')
-      .filter('tanggal_lahir', 'not.is', null)
-      .like('tanggal_lahir', `%-${todayMMDD}`),
+      .filter('tanggal_lahir', 'not.is', null),
   ])
 
-  const todayBirthdays = (birthdayUsers ?? [])
-    .filter((p: any) => p.users?.is_active)
+  // Filter birthday di JS karena kolom tanggal_lahir bertipe date,
+  // PostgreSQL LIKE tidak bisa dipakai langsung pada tipe date
+  const todayBirthdays = (allBirthdayProfiles ?? [])
+    .filter((p: any) => {
+      if (!p.users?.is_active || !p.tanggal_lahir) return false
+      const d = new Date(p.tanggal_lahir)
+      return d.getUTCMonth() + 1 === currentMonth && d.getUTCDate() === todayDay
+    })
     .map((p: any) => ({
       user_id: p.user_id,
       full_name: p.users.full_name,
@@ -112,6 +117,9 @@ export default async function HomePage() {
           {bulanNames[currentMonth]} {currentYear}
         </p>
       </div>
+
+      {/* Announcement Banner */}
+      <AnnouncementBanner userId={user.id} />
 
       {/* Birthday Popup */}
       {todayBirthdays.length > 0 && (

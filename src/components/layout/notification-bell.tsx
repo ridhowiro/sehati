@@ -26,6 +26,7 @@ const tipeIcon: Record<string, string> = {
   cuti_approved: '✅',
   cuti_rejected: '❌',
   umum: '🔔',
+  pengumuman: '📢',
 }
 
 function timeAgo(dateStr: string) {
