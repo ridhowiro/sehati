@@ -67,7 +67,7 @@ export default function Sidebar() {
       setAdminOpen(true)
     }
     if (pathname.startsWith('/review')) setAktivitasOpen(true)
-    if (pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan')) {
+    if (pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan') || pathname.startsWith('/admin/absensi')) {
       setKepegawaianOpen(true)
     }
     setMobileOpen(false)
@@ -99,7 +99,7 @@ export default function Sidebar() {
   const canAnnounce = role === 'admin' || role === 'kepala_sekretariat'
 
   const aktivitasActive = pathname.startsWith('/review')
-  const kepegawaianActive = pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan')
+  const kepegawaianActive = pathname.startsWith('/admin/izin') || pathname.startsWith('/laporan') || pathname.startsWith('/admin/absensi')
   const pengaturanActive = pathname.startsWith('/admin/users') || pathname.startsWith('/admin/bidang') || pathname.startsWith('/admin/kantor') || pathname.startsWith('/admin/hari-libur') || pathname.startsWith('/admin/pengaturan')
 
   return (
@@ -227,6 +227,13 @@ export default function Sidebar() {
                   <Link href="/admin/izin" className={subItemClass(isActive('/admin/izin'))}>
                     <ClipboardList size={15} className="shrink-0" />
                     <span>Izin Tim</span>
+                  </Link>
+                )}
+                {/* Koreksi Absensi - approver saja */}
+                {canReview && (
+                  <Link href="/admin/absensi" className={subItemClass(isActive('/admin/absensi'))}>
+                    <ClipboardCheck size={15} className="shrink-0" />
+                    <span>Koreksi Absensi</span>
                   </Link>
                 )}
                 {/* Laporan Rekap Absensi - semua role (karyawan: lihat milik sendiri) */}
