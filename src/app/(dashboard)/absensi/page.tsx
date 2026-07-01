@@ -128,7 +128,7 @@ export default async function AbsensiPage() {
         <div className="md:col-span-1 xl:col-span-2 space-y-3">
           <CheckinCard kantor={kantor} absensiHariIni={absensiHariIni} />
           <IzinForm izinSaya={izinSaya ?? []} />
-          <KoreksiForm absensiList={riwayatList} />
+          <KoreksiForm absensiList={riwayatList.filter(r => r.checkin_time && (!r.checkout_time || r.status === 'terlambat'))} />
         </div>
 
         {/* Kanan: riwayat */}

@@ -159,7 +159,7 @@ export async function checkout(data: { lat: number; lng: number }) {
 
 export async function ajukanKoreksi(data: {
   absensi_id: string
-  jenis: 'koreksi_checkin' | 'koreksi_checkout' | 'dispensasi'
+  jenis: 'koreksi_checkout' | 'dispensasi'
   alasan: string
   waktu_koreksi?: string
 }) {
@@ -193,6 +193,14 @@ export async function prosesKoreksi(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi' }
 
+  const { data: koreksi, error: fetchError } = await supabase
+    .from('absensi_koreksi')
+    .select('absensi_id, jenis, waktu_koreksi')
+    .eq('id', koreksiId)
+    .single()
+
+  if (fetchError) return { error: fetchError.message }
+
   const { error } = await supabase
     .from('absensi_koreksi')
     .update({
@@ -204,6 +212,22 @@ export async function prosesKoreksi(
     .eq('id', koreksiId)
 
   if (error) return { error: error.message }
+
+  if (action === 'disetujui') {
+    if (koreksi.jenis === 'koreksi_checkout') {
+      const { error: absensiError } = await supabase
+        .from('absensi')
+        .update({ checkout_time: koreksi.waktu_koreksi || new Date().toISOString() })
+        .eq('id', koreksi.absensi_id)
+      if (absensiError) return { error: absensiError.message }
+    } else if (koreksi.jenis === 'dispensasi') {
+      const { error: absensiError } = await supabase
+        .from('absensi')
+        .update({ status: 'hadir', is_late: false, menit_terlambat: 0 })
+        .eq('id', koreksi.absensi_id)
+      if (absensiError) return { error: absensiError.message }
+    }
+  }
 
   revalidatePath('/admin/absensi')
   revalidatePath('/absensi')

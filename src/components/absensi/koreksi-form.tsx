@@ -24,7 +24,7 @@ function fmtTanggal(dateStr: string) {
 export default function KoreksiForm({ absensiList }: KoreksiFormProps) {
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState('')
-  const [jenis, setJenis] = useState<'koreksi_checkin' | 'koreksi_checkout' | 'dispensasi'>('koreksi_checkin')
+  const [jenis, setJenis] = useState<'koreksi_checkout' | 'dispensasi'>('koreksi_checkout')
   const [alasan, setAlasan] = useState('')
   const [waktuKoreksi, setWaktuKoreksi] = useState('')
   const [loading, setLoading] = useState(false)
@@ -50,7 +50,7 @@ export default function KoreksiForm({ absensiList }: KoreksiFormProps) {
       setSuccess(true)
       setOpen(false)
       setSelectedId('')
-      setJenis('koreksi_checkin')
+      setJenis('koreksi_checkout')
       setAlasan('')
       setWaktuKoreksi('')
     }
@@ -104,8 +104,7 @@ export default function KoreksiForm({ absensiList }: KoreksiFormProps) {
               onChange={(e) => setJenis(e.target.value as typeof jenis)}
               className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400"
             >
-              <option value="koreksi_checkin">Koreksi Check-in</option>
-              <option value="koreksi_checkout">Koreksi Check-out</option>
+              <option value="koreksi_checkout">Lupa Absen Pulang</option>
               <option value="dispensasi">Dispensasi / Izin</option>
             </select>
           </div>
