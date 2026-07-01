@@ -201,18 +201,22 @@ export async function prosesKoreksi(
   action: 'disetujui' | 'ditolak',
   catatan?: string
 ) {
-  await requireRole(['admin', 'pic', 'kepala_sekretariat', 'kasubdit'])
+  const { userData, role } = await requireRole(['admin', 'pic', 'kepala_sekretariat', 'kasubdit'])
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi' }
 
   const { data: koreksi, error: fetchError } = await supabase
     .from('absensi_koreksi')
-    .select('absensi_id, jenis, waktu_koreksi')
+    .select('absensi_id, jenis, waktu_koreksi, users!absensi_koreksi_user_id_fkey(bidang_id)')
     .eq('id', koreksiId)
     .single()
 
   if (fetchError) return { error: fetchError.message }
+
+  if (role === 'pic' && (koreksi.users as unknown as { bidang_id: string | null })?.bidang_id !== userData?.bidang_id) {
+    return { error: 'Kamu hanya bisa memproses koreksi anggota timmu' }
+  }
 
   const { error } = await supabase
     .from('absensi_koreksi')

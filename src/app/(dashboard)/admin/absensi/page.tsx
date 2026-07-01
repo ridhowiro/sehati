@@ -31,26 +31,41 @@ const jenisKoreksiLabel: Record<string, string> = {
 }
 
 export default async function AdminAbsensiPage() {
-  const { userData } = await getUserRole()
-  const canAccess = ['admin', 'kepala_sekretariat', 'kasubdit', 'pic'].includes(userData?.role ?? '')
+  const { userData, role } = await getUserRole()
+  const canAccess = ['admin', 'kepala_sekretariat', 'kasubdit', 'pic'].includes(role ?? '')
   if (!canAccess) redirect('/')
 
   const supabase = await createClient()
 
+  // PIC hanya boleh lihat/proses tim di bidang-nya sendiri
+  let teamUserIds: string[] | null = null
+  if (role === 'pic') {
+    const { data: teamUsers } = await supabase
+      .from('users')
+      .select('id')
+      .eq('bidang_id', userData?.bidang_id ?? '00000000-0000-0000-0000-000000000000')
+    teamUserIds = (teamUsers ?? []).map((u: any) => u.id)
+    if (teamUserIds.length === 0) teamUserIds = ['00000000-0000-0000-0000-000000000000']
+  }
+
   // Rekap absensi semua user hari ini
   const todayWib = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
-  const { data: absensiHariIni } = await supabase
+  let absensiQuery = supabase
     .from('absensi')
-    .select('*, users(full_name, bidang_id, bidang:bidang(nama))')
+    .select('*, users!absensi_user_id_fkey(full_name, bidang_id, bidang:bidang(nama))')
     .eq('tanggal', todayWib)
     .order('checkin_time', { ascending: true })
+  if (teamUserIds) absensiQuery = absensiQuery.in('user_id', teamUserIds)
+  const { data: absensiHariIni } = await absensiQuery
 
   // Koreksi pending
-  const { data: koreksiPending } = await supabase
+  let koreksiQuery = supabase
     .from('absensi_koreksi')
-    .select('*, users(full_name), absensi(tanggal, checkin_time, checkout_time)')
+    .select('*, users!absensi_koreksi_user_id_fkey(full_name), absensi(tanggal, checkin_time, checkout_time)')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
+  if (teamUserIds) koreksiQuery = koreksiQuery.in('user_id', teamUserIds)
+  const { data: koreksiPending } = await koreksiQuery
 
   return (
     <div className="space-y-6">
