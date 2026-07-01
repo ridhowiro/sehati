@@ -29,11 +29,13 @@ export default async function AbsensiPage() {
   const todayWib = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA')
+  const enamPuluhHariLalu = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA')
 
   const [
     { data: absensiHariIni },
     { data: riwayat },
     { data: izinSaya },
+    { data: kandidatKoreksi },
   ] = await Promise.all([
     supabase
       .from('absensi')
@@ -53,6 +55,14 @@ export default async function AbsensiPage() {
       .eq('user_id', user.id)
       .order('tanggal_mulai', { ascending: false })
       .limit(20),
+    supabase
+      .from('absensi')
+      .select('id, tanggal, checkin_time, checkout_time, status, is_late')
+      .eq('user_id', user.id)
+      .not('checkin_time', 'is', null)
+      .gte('tanggal', enamPuluhHariLalu)
+      .or('checkout_time.is.null,is_late.eq.true')
+      .order('tanggal', { ascending: false }),
   ])
 
   const izinHariIni = (izinSaya ?? []).find(i =>
@@ -66,6 +76,11 @@ export default async function AbsensiPage() {
   const totalWfh = riwayatList.filter(r => r.status === 'wfh').length
   const totalTerlambat = riwayatList.filter(r => r.status === 'terlambat').length
   const totalHariKerja = riwayatList.length
+
+  const suratTugasDisetujui = (izinSaya ?? []).filter(i => i.jenis === 'surat_tugas' && i.status === 'disetujui')
+  const adaSuratTugas = (tanggal: string) =>
+    suratTugasDisetujui.some(s => s.tanggal_mulai <= tanggal && s.tanggal_selesai >= tanggal)
+  const koreksiCandidateList = (kandidatKoreksi ?? []).filter(r => !adaSuratTugas(r.tanggal))
 
   const jenisIzinLabel: Record<string, string> = {
     surat_tugas: 'Surat Tugas', cuti: 'Cuti', sakit: 'Sakit', izin: 'Izin',
@@ -128,7 +143,7 @@ export default async function AbsensiPage() {
         <div className="md:col-span-1 xl:col-span-2 space-y-3">
           <CheckinCard kantor={kantor} absensiHariIni={absensiHariIni} />
           <IzinForm izinSaya={izinSaya ?? []} />
-          <KoreksiForm absensiList={riwayatList.filter(r => r.checkin_time && (!r.checkout_time || r.status === 'terlambat'))} />
+          <KoreksiForm absensiList={koreksiCandidateList} />
         </div>
 
         {/* Kanan: riwayat */}

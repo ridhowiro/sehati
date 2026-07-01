@@ -14,6 +14,15 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+function hitungKeterlambatan(kantor: { jam_masuk: string; toleransi_menit: number }) {
+  const now = new Date()
+  const [h, m] = kantor.jam_masuk.split(':').map(Number)
+  const batasMasuk = new Date(now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }))
+  batasMasuk.setHours(h - 7, m + kantor.toleransi_menit, 0, 0) // UTC: WIB - 7
+  const menitTerlambat = Math.round((now.getTime() - batasMasuk.getTime()) / 60000)
+  return menitTerlambat > 0 ? menitTerlambat : 0
+}
+
 function sudahJamPulang(kantor: { jam_pulang_senin_kamis: string; jam_pulang_jumat: string }) {
   const now = new Date()
   const hari = now.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Jakarta' })
@@ -33,7 +42,7 @@ export async function checkin(data: { lat: number; lng: number }) {
 
   const { data: kantor } = await supabase
     .from('kantor_config')
-    .select('lat, lng, radius_meter, jam_pulang_senin_kamis, jam_pulang_jumat')
+    .select('lat, lng, radius_meter, jam_masuk, toleransi_menit, jam_pulang_senin_kamis, jam_pulang_jumat')
     .eq('is_active', true)
     .maybeSingle()
 
@@ -82,11 +91,13 @@ export async function checkin(data: { lat: number; lng: number }) {
 
   // Case 1: Belum checkin → lakukan check-in
   const status = is_wfh ? 'wfh' : 'hadir'
+  const menitTerlambat = hitungKeterlambatan(kantor)
+  const is_late = menitTerlambat > 0
 
   if (existing) {
     const { error } = await supabase
       .from('absensi')
-      .update({ checkin_time: now, checkin_lat: data.lat, checkin_lng: data.lng, status })
+      .update({ checkin_time: now, checkin_lat: data.lat, checkin_lng: data.lng, status, is_late, menit_terlambat: menitTerlambat })
       .eq('id', existing.id)
     if (error) return { error: error.message }
   } else {
@@ -99,6 +110,8 @@ export async function checkin(data: { lat: number; lng: number }) {
         checkin_lat: data.lat,
         checkin_lng: data.lng,
         status,
+        is_late,
+        menit_terlambat: menitTerlambat,
       })
     if (error) return { error: error.message }
   }
