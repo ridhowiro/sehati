@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/lib/get-user-role'
 
@@ -206,7 +207,7 @@ export async function prosesKoreksi(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi' }
 
-  const { data: koreksi, error: fetchError } = await supabase
+  const { data: koreksi, error: fetchError } = await createAdminClient()
     .from('absensi_koreksi')
     .select('absensi_id, jenis, waktu_koreksi, users!absensi_koreksi_user_id_fkey(bidang_id)')
     .eq('id', koreksiId)

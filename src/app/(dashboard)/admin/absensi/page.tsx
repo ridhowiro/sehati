@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getUserRole } from '@/lib/get-user-role'
 import { redirect } from 'next/navigation'
 import ProsesKoreksiButton from '@/components/absensi/proses-koreksi-button'
@@ -35,7 +35,7 @@ export default async function AdminAbsensiPage() {
   const canAccess = ['admin', 'kepala_sekretariat', 'kasubdit', 'pic'].includes(role ?? '')
   if (!canAccess) redirect('/')
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // PIC hanya boleh lihat/proses tim di bidang-nya sendiri
   let teamUserIds: string[] | null = null
