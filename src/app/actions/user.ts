@@ -6,14 +6,24 @@ import { createNotifikasi, getUsersByRole } from '@/lib/notifikasi'
 import { requireRole } from '@/lib/get-user-role'
 import { canReviewLog, getBidangIdsWithPic, nextLogStatus } from '@/lib/log-review'
 
+// Role yang hanya boleh dipegang satu user aktif. PIC unik per bidang, sisanya unik global.
 const EXCLUSIVE_ROLES = ['pic', 'kasubdit', 'kepala_sekretariat']
 
-async function checkExclusiveRole(supabase: ReturnType<typeof createAdminClient>, role: string, excludeUserId?: string) {
+async function checkExclusiveRole(
+  supabase: ReturnType<typeof createAdminClient>,
+  role: string,
+  bidangId: string | null,
+  excludeUserId?: string,
+) {
   if (!EXCLUSIVE_ROLES.includes(role)) return null
-  const query = supabase.from('users').select('id, full_name').eq('role', role).eq('is_active', true)
+  if (role === 'pic' && !bidangId) return 'PIC wajib memiliki bidang.'
+
+  let query = supabase.from('users').select('id, full_name').eq('role', role).eq('is_active', true)
+  if (role === 'pic') query = query.eq('bidang_id', bidangId!)
   const { data } = excludeUserId ? await query.neq('id', excludeUserId) : await query
   if (data && data.length > 0) {
-    return `Role ini sudah dipegang oleh ${data[0].full_name}. Ubah role mereka terlebih dahulu.`
+    const scope = role === 'pic' ? 'PIC bidang ini' : 'Role ini'
+    return `${scope} sudah dipegang oleh ${data[0].full_name}. Ubah role mereka terlebih dahulu.`
   }
   return null
 }
@@ -34,7 +44,7 @@ export async function createUser(formData: {
   await requireRole(['admin'])
   const supabase = createAdminClient()
 
-  const exclusiveError = await checkExclusiveRole(supabase, formData.role)
+  const exclusiveError = await checkExclusiveRole(supabase, formData.role, formData.bidang_id || null)
   if (exclusiveError) return { error: exclusiveError }
 
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
@@ -77,8 +87,11 @@ export async function updateUser(userId: string, data: { role: string, bidang_id
   await requireRole(['admin'])
   const supabase = createAdminClient()
 
-  const exclusiveError = await checkExclusiveRole(supabase, data.role, userId)
-  if (exclusiveError) return { error: exclusiveError }
+  // User yang dinonaktifkan tidak memegang role, jadi tidak perlu dicek bentrok
+  if (data.is_active) {
+    const exclusiveError = await checkExclusiveRole(supabase, data.role, data.bidang_id || null, userId)
+    if (exclusiveError) return { error: exclusiveError }
+  }
 
   const { error } = await supabase
     .from('users')
