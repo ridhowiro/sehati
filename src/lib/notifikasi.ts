@@ -54,3 +54,17 @@ export async function getPicByBidang(bidangId: string): Promise<string[]> {
     .eq('is_active', true)
   return (data ?? []).map((u: any) => u.id)
 }
+
+/**
+ * Cari approver untuk seorang karyawan berdasarkan bidang.
+ * Kalau punya bidang, approver adalah PIC bidang tsb.
+ * Kalau tidak punya bidang (staff umum), fallback ke kepala sekretariat & kasubdit.
+ */
+export async function getApproversByBidang(bidangId: string | null): Promise<string[]> {
+  if (bidangId) return getPicByBidang(bidangId)
+  const [kasekIds, kasubditIds] = await Promise.all([
+    getUsersByRole('kepala_sekretariat'),
+    getUsersByRole('kasubdit'),
+  ])
+  return [...new Set([...kasekIds, ...kasubditIds])]
+}

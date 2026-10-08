@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { createNotifikasi, getUsersByRole, getPicByBidang } from '@/lib/notifikasi'
+import { createNotifikasi, getUsersByRole, getApproversByBidang } from '@/lib/notifikasi'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireRole } from '@/lib/get-user-role'
 
@@ -51,10 +51,10 @@ export async function ajukanIzin(data: {
       .single()
     const nama = userData?.full_name || userData?.email || 'Karyawan'
 
-    // Kumpulkan penerima: PIC bidang + admin (deduplicate)
-    const picIds = userData?.bidang_id ? await getPicByBidang(userData.bidang_id) : []
+    // Kumpulkan penerima: PIC bidang (atau kasek+kasubdit utk staff umum) + admin (deduplicate)
+    const approverIds = await getApproversByBidang(userData?.bidang_id ?? null)
     const adminIds = await getUsersByRole('admin')
-    const penerimIds = [...new Set([...picIds, ...adminIds])]
+    const penerimIds = [...new Set([...approverIds, ...adminIds])]
 
     const pesan = `${nama} mengajukan ${jenisLabel[data.jenis] ?? data.jenis} pada ${data.tanggal_mulai}${data.tanggal_mulai !== data.tanggal_selesai ? ` s/d ${data.tanggal_selesai}` : ''}.`
 

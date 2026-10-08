@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { createNotifikasi, getPicByBidang } from '@/lib/notifikasi'
+import { createNotifikasi, getApproversByBidang } from '@/lib/notifikasi'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -42,12 +42,10 @@ export async function submitLog(logId: string) {
     const periode = `${bulanNames[log.bulan]} ${log.tahun}`
     const link = `/review/${logId}`
 
-    const picIds = userData.bidang_id
-      ? await getPicByBidang(userData.bidang_id)
-      : []
+    const approverIds = await getApproversByBidang(userData.bidang_id)
 
-    if (picIds.length > 0) {
-      await createNotifikasi(picIds.map(id => ({
+    if (approverIds.length > 0) {
+      await createNotifikasi(approverIds.map(id => ({
         user_id: id,
         judul: 'Log Menunggu Review',
         pesan: `${nama} mengajukan log ${periode} untuk direview.`,
