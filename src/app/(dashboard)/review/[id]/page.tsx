@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ReviewDetail from '@/components/log/review-detail'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { canReviewLog, getBidangIdsWithPic } from '@/lib/log-review'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -23,12 +24,29 @@ const supabase = createAdminClient()
     .from('log_bulanan')
     .select(`
       *,
-      users!log_bulanan_user_id_fkey (full_name, email)
+      users!log_bulanan_user_id_fkey (full_name, email, bidang_id)
     `)
     .eq('id', id)
     .single()
 
   if (!log) redirect('/review')
+
+  const bidangWithPic = await getBidangIdsWithPic()
+  const canReview = canReviewLog(
+    userData,
+    { status: log.status, ownerBidangId: log.users?.bidang_id ?? null },
+    bidangWithPic,
+  )
+
+  // PIC hanya boleh membuka log tim sendiri, atau log yang pernah ia review (histori)
+  if (role === 'pic' && !canReview && log.users?.bidang_id !== userData?.bidang_id) {
+    const { count } = await supabase
+      .from('log_approval')
+      .select('id', { count: 'exact', head: true })
+      .eq('log_bulanan_id', id)
+      .eq('reviewer_id', userData?.id)
+    if (!count) redirect('/review')
+  }
 
   const { data: entries } = await supabase
     .from('log_entry')
@@ -70,7 +88,7 @@ const supabase = createAdminClient()
         entries={entries || []}
         approvals={approvals || []}
         reviewerRole={role}
-        reviewerId={userData?.id}
+        canReview={canReview}
         hariLibur={(hariLibur || []).map(h => h.tanggal)}
       />
     </div>

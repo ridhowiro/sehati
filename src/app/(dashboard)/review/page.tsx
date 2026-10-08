@@ -5,10 +5,10 @@ import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import ReviewLogTable from '@/components/review/review-log-table'
 import DraftLogTable from '@/components/review/draft-log-table'
+import { canReviewLog, getBidangIdsWithPic } from '@/lib/log-review'
 
 const pendingStatus: Record<string, string> = {
   pic: 'submitted',
-  kepala_sekretariat: 'reviewed_pic',
   kasubdit: 'verified_kasek',
 }
 
@@ -29,15 +29,17 @@ export default async function ReviewPage() {
 
   if (role === 'admin') {
     pendingQuery = pendingQuery.not('status', 'eq', 'draft')
+  } else if (role === 'kepala_sekretariat') {
+    // Kasek: log yang sudah lolos PIC + log 'submitted' dari karyawan tanpa PIC
+    pendingQuery = pendingQuery.in('status', ['reviewed_pic', 'submitted'])
   } else {
     pendingQuery = pendingQuery.eq('status', pendingStatus[role])
 
     // PIC: filter hanya tim yang sama
-    if (role === 'pic' && userData?.bidang_id) {
-      const { data: teamUsers } = await supabase
-        .from('users')
-        .select('id')
-        .eq('bidang_id', userData.bidang_id)
+    if (role === 'pic') {
+      const { data: teamUsers } = userData?.bidang_id
+        ? await supabase.from('users').select('id').eq('bidang_id', userData.bidang_id)
+        : { data: [] }
       const teamUserIds = (teamUsers ?? []).map((u: any) => u.id)
       if (teamUserIds.length > 0) {
         pendingQuery = pendingQuery.in('user_id', teamUserIds)
@@ -47,7 +49,14 @@ export default async function ReviewPage() {
     }
   }
 
-  const { data: pendingLogs } = await pendingQuery
+  let { data: pendingLogs } = await pendingQuery
+
+  if (role === 'kepala_sekretariat' && pendingLogs) {
+    const bidangWithPic = await getBidangIdsWithPic()
+    pendingLogs = pendingLogs.filter((l: any) =>
+      canReviewLog(userData, { status: l.status, ownerBidangId: l.users?.bidang_id ?? null }, bidangWithPic)
+    )
+  }
 
   // --- Draft logs (hanya admin) ---
   let draftLogs: any[] = []

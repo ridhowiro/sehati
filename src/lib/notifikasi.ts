@@ -57,11 +57,15 @@ export async function getPicByBidang(bidangId: string): Promise<string[]> {
 
 /**
  * Cari approver untuk seorang karyawan berdasarkan bidang.
- * Kalau punya bidang, approver adalah PIC bidang tsb.
- * Kalau tidak punya bidang (staff umum), fallback ke kepala sekretariat & kasubdit.
+ * Kalau bidangnya punya PIC aktif, approver adalah PIC bidang tsb.
+ * Kalau tidak punya bidang (staff umum) atau bidangnya belum ada PIC,
+ * fallback ke kepala sekretariat & kasubdit.
  */
 export async function getApproversByBidang(bidangId: string | null): Promise<string[]> {
-  if (bidangId) return getPicByBidang(bidangId)
+  if (bidangId) {
+    const picIds = await getPicByBidang(bidangId)
+    if (picIds.length > 0) return picIds
+  }
   const [kasekIds, kasubditIds] = await Promise.all([
     getUsersByRole('kepala_sekretariat'),
     getUsersByRole('kasubdit'),

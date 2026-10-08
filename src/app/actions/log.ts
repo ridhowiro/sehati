@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { createNotifikasi, getApproversByBidang } from '@/lib/notifikasi'
+import { createNotifikasi, getPicByBidang, getUsersByRole } from '@/lib/notifikasi'
 
 const bulanNames = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -15,21 +15,24 @@ export async function submitLog(logId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Tidak terautentikasi' }
 
-  const { error } = await supabase
-    .from('log_bulanan')
-    .update({ status: 'submitted', submitted_at: new Date().toISOString() })
-    .eq('id', logId)
-    .eq('user_id', user.id)
-
-  if (error) return { error: error.message }
-
-  // Kirim notifikasi ke PIC bidang user
   const adminSupabase = createAdminClient()
   const { data: userData } = await adminSupabase
     .from('users')
     .select('full_name, email, bidang_id')
     .eq('id', user.id)
     .single()
+
+  // Tanpa PIC (staff umum / bidang belum ada PIC) → lewati tahap PIC, langsung ke Kasek
+  const picIds = userData?.bidang_id ? await getPicByBidang(userData.bidang_id) : []
+  const skipPic = picIds.length === 0
+
+  const { error } = await supabase
+    .from('log_bulanan')
+    .update({ status: skipPic ? 'reviewed_pic' : 'submitted', submitted_at: new Date().toISOString() })
+    .eq('id', logId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
 
   const { data: log } = await adminSupabase
     .from('log_bulanan')
@@ -42,10 +45,17 @@ export async function submitLog(logId: string) {
     const periode = `${bulanNames[log.bulan]} ${log.tahun}`
     const link = `/review/${logId}`
 
-    const approverIds = await getApproversByBidang(userData.bidang_id)
-
-    if (approverIds.length > 0) {
-      await createNotifikasi(approverIds.map(id => ({
+    if (skipPic) {
+      const kasekIds = await getUsersByRole('kepala_sekretariat')
+      await createNotifikasi(kasekIds.map(id => ({
+        user_id: id,
+        judul: 'Log Menunggu Verifikasi',
+        pesan: `${nama} mengajukan log ${periode} (tanpa PIC) dan menunggu verifikasi kamu.`,
+        tipe: 'log_reviewed_pic' as const,
+        link,
+      })))
+    } else {
+      await createNotifikasi(picIds.map(id => ({
         user_id: id,
         judul: 'Log Menunggu Review',
         pesan: `${nama} mengajukan log ${periode} untuk direview.`,

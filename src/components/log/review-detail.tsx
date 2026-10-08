@@ -18,20 +18,6 @@ function hitungHariKerja(tahun: number, bulan: number, hariLibur: string[]): num
   return count
 }
 
-const nextStatus: Record<string, string> = {
-  pic: 'reviewed_pic',
-  kepala_sekretariat: 'verified_kasek',
-  kasubdit: 'approved',
-  admin: 'approved',
-}
-
-const urutanMap: Record<string, number> = {
-  pic: 1,
-  kepala_sekretariat: 2,
-  kasubdit: 3,
-  admin: 3,
-}
-
 const statusColors = {
   selesai: 'bg-green-500/10 text-green-400 border-green-500/20',
   proses: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
@@ -43,14 +29,14 @@ export default function ReviewDetail({
   entries,
   approvals,
   reviewerRole,
-  reviewerId,
+  canReview,
   hariLibur = [],
 }: {
   log: any
   entries: any[]
   approvals: any[]
   reviewerRole: string
-  reviewerId: string
+  canReview: boolean
   hariLibur?: string[]
 }) {
   const [komentar, setKomentar] = useState('')
@@ -69,16 +55,7 @@ export default function ReviewDetail({
     if (!confirm('Setujui log ini?')) return
     setLoading(true)
 
-    const result = await updateLogStatus(
-      log.id,
-      nextStatus[reviewerRole],
-      {
-        reviewer_id: reviewerId,
-        role_reviewer: reviewerRole,
-        komentar: komentar || null,
-        urutan: urutanMap[reviewerRole],
-      }
-    )
+    const result = await updateLogStatus(log.id, 'approve', komentar || null)
 
     if (result.error) {
       showMsg('Gagal: ' + result.error, true)
@@ -97,16 +74,7 @@ export default function ReviewDetail({
     if (!confirm('Kembalikan log ini untuk direvisi?')) return
     setLoading(true)
 
-    const result = await updateLogStatus(
-      log.id,
-      'revision',
-      {
-        reviewer_id: reviewerId,
-        role_reviewer: reviewerRole,
-        komentar,
-        urutan: urutanMap[reviewerRole],
-      }
-    )
+    const result = await updateLogStatus(log.id, 'revision', komentar)
 
     if (result.error) {
       showMsg('Gagal: ' + result.error, true)
@@ -116,12 +84,6 @@ export default function ReviewDetail({
     }
     setLoading(false)
   }
-
-  const canReview =
-    (reviewerRole === 'pic' && log.status === 'submitted') ||
-    (reviewerRole === 'kepala_sekretariat' && log.status === 'reviewed_pic') ||
-    (reviewerRole === 'kasubdit' && log.status === 'verified_kasek') ||
-    (reviewerRole === 'admin' && ['submitted', 'reviewed_pic', 'verified_kasek'].includes(log.status))
 
   return (
     <div className="space-y-6">

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { createNotifikasi, getUsersByRole } from '@/lib/notifikasi'
 import { requireRole } from '@/lib/get-user-role'
+import { canReviewLog, getBidangIdsWithPic, nextLogStatus } from '@/lib/log-review'
 
 const EXCLUSIVE_ROLES = ['pic', 'kasubdit', 'kepala_sekretariat']
 
@@ -103,24 +104,46 @@ export async function resetPassword(userId: string, newPassword: string) {
   return { success: true }
 }
 
-export async function updateLogStatus(logId: string, status: string, approvalData: {
-  reviewer_id: string
-  role_reviewer: string
-  komentar: string | null
-  urutan: number
-}) {
-  await requireRole(['admin', 'kasubdit', 'kepala_sekretariat', 'pic'])
+const urutanReviewer: Record<string, number> = {
+  pic: 1,
+  kepala_sekretariat: 2,
+  kasubdit: 3,
+  admin: 3,
+}
+
+export async function updateLogStatus(logId: string, action: 'approve' | 'revision', komentar: string | null) {
+  const { userData, role } = await requireRole(['admin', 'kasubdit', 'kepala_sekretariat', 'pic'])
   const supabase = createAdminClient()
+
+  const { data: target } = await supabase
+    .from('log_bulanan')
+    .select('status, users!log_bulanan_user_id_fkey(bidang_id)')
+    .eq('id', logId)
+    .single()
+
+  if (!target) return { error: 'Log tidak ditemukan' }
+
+  const bidangWithPic = await getBidangIdsWithPic()
+  const allowed = canReviewLog(
+    userData,
+    { status: target.status, ownerBidangId: (target.users as any)?.bidang_id ?? null },
+    bidangWithPic,
+  )
+  if (!allowed) return { error: 'Kamu tidak berwenang memproses log ini pada status sekarang' }
+
+  if (action === 'revision' && !komentar?.trim()) return { error: 'Komentar revisi wajib diisi' }
+
+  const status = action === 'revision' ? 'revision' : nextLogStatus[role]
 
   const { error: approvalError } = await supabase
     .from('log_approval')
     .insert({
       log_bulanan_id: logId,
-      reviewer_id: approvalData.reviewer_id,
-      role_reviewer: approvalData.role_reviewer,
-      status: status === 'revision' ? 'revision' : 'approved',
-      komentar: approvalData.komentar,
-      urutan: approvalData.urutan,
+      reviewer_id: userData.id,
+      role_reviewer: role,
+      status: action === 'revision' ? 'revision' : 'approved',
+      komentar,
+      urutan: urutanReviewer[role],
       reviewed_at: new Date().toISOString(),
     })
 
@@ -151,7 +174,7 @@ export async function updateLogStatus(logId: string, status: string, approvalDat
       await createNotifikasi({
         user_id: log.user_id,
         judul: 'Log Perlu Direvisi',
-        pesan: `Log ${periode} kamu diminta revisi. ${approvalData.komentar ? `Catatan: ${approvalData.komentar}` : ''}`,
+        pesan: `Log ${periode} kamu diminta revisi. ${komentar ? `Catatan: ${komentar}` : ''}`,
         tipe: 'log_revision',
         link: linkLog,
       })

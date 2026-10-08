@@ -12,8 +12,8 @@ const tagOptions = [
 
 const statusLogLabel: Record<string, string> = {
   submitted:        'Sudah disubmit',
-  reviewed_pic:     'Sedang direview PIC',
-  verified_kasek:   'Sedang diverifikasi Kasek',
+  reviewed_pic:     'Sedang diverifikasi Kasek',
+  verified_kasek:   'Menunggu persetujuan Kasubdit',
   approved:         'Sudah disetujui',
 }
 
