@@ -19,7 +19,8 @@ const statusConfig = {
 }
 
 export default async function LogPage() {
-  const { user } = await getUserRole()
+  const { user, role } = await getUserRole()
+  if (role === 'kepala_sekretariat' || role === 'kasubdit') redirect('/')
   const supabase = await createClient()
 
   const { data: logs } = await supabase

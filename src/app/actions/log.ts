@@ -18,9 +18,14 @@ export async function submitLog(logId: string) {
   const adminSupabase = createAdminClient()
   const { data: userData } = await adminSupabase
     .from('users')
-    .select('full_name, email, bidang_id')
+    .select('full_name, email, bidang_id, role')
     .eq('id', user.id)
     .single()
+
+  // Kasek & Kasubdit tidak mengisi log harian/bulanan
+  if (userData?.role === 'kepala_sekretariat' || userData?.role === 'kasubdit') {
+    return { error: 'Role kamu tidak mengisi log bulanan' }
+  }
 
   // Tanpa PIC (staff umum / bidang belum ada PIC) → lewati tahap PIC, langsung ke Kasek
   const picIds = userData?.bidang_id ? await getPicByBidang(userData.bidang_id) : []
